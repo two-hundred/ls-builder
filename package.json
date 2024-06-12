@@ -1,0 +1,11 @@
+{
+    "name": "ls-builder",
+    "version": "1.0.0",
+    "description": "Dependencies for scripts and git hooks for the language server builder",
+    "main": "index.js",
+    "repository": "git@github.com:two-hundred/ls-builder.git",
+    "devDependencies": {
+      "@commitlint/cli": "^15.0.0",
+      "@commitlint/config-conventional": "^15.0.0"
+    }
+  }

@@ -1,0 +1,8 @@
+##!/bin/bash
+
+if ! scripts/lint.sh; then
+    echo -e "\033[1m\033[31mFailed linting, please fix the reported issues\033[0m\n"
+    exit 1
+else
+    echo -e "\033[1m\033[32mLinting passed, good job!\033[0m\n"
+fi

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+npm exec -- commitlint --edit $1
