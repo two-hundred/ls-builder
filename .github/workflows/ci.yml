@@ -1,0 +1,50 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Language Server Builder CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the main branch
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs: {}
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  integrate:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-go@v1
+      with:
+        go-version: '1.22.2'
+
+    # Install global Go dependencies
+    - name: Install Go Global Dependencies
+      run: go install honnef.co/go/tools/cmd/staticcheck@latest && go get -u golang.org/x/sys/unix
+
+    # SonarCloud scan runs in a docker container where the workspace directory gets mounted to /github/workspace
+    # so we need to replace all references to the github workspace directory with /github/workspace.
+    - name: Linting
+      run: >
+        export PATH=$PATH:$(go env GOPATH)/bin && bash scripts/lint.sh &&
+          sed -i 's#${{ github.workspace }}#/github/workspace#g' govet-report.out &&
+          sed -i 's#${{ github.workspace }}#/github/workspace#g' staticcheck.out
+
+    - name: Run Tests
+      run: bash scripts/run-tests.sh
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
