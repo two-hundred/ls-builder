@@ -53,3 +53,13 @@ type InlayHintClientCapabilities struct{}
 type InlineValueClientCapabilities struct{}
 
 type TypeHierarchyClientCapabilities struct{}
+
+type CompletionOptions struct{}
+
+type SignatureHelpOptions struct{}
+
+type CodeLensOptions struct{}
+
+type DocumentLinkOptions struct{}
+
+type DocumentOnTypeFormattingOptions struct{}

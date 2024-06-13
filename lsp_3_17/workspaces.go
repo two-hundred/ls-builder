@@ -19,3 +19,9 @@ type InlayHintWorkspaceClientCapabilities struct{}
 type DiagnosticWorkspaceClientCapabilities struct{}
 
 type WorkspaceFolder struct{}
+
+type ExecuteCommandOptions struct{}
+
+type WorkspaceFoldersServerCapabilities struct{}
+
+type FileOperationRegistrationOptions struct{}
