@@ -49,3 +49,9 @@ type UnregistrationParams struct {
 	// util 4.x version of the specification is delivered.
 	Unregistrations []Unregistration `json:"unregisterations"`
 }
+
+type StaticRegistrationOptions struct {
+	// The id used to register the request. The ID can be used to deregister
+	// the request in the future. Tou can also see Registration#id.
+	ID *string `json:"id,omitempty"`
+}

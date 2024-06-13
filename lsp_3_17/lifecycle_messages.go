@@ -642,7 +642,7 @@ type ServerCapabilities struct {
 type serverCapabilitiesIntermediate struct {
 	PsotionEncoding                  PositionEncodingKind             `json:"positionEncoding,omitempty"`
 	TextDocumentSync                 json.RawMessage                  `json:"textDocumentSync,omitempty"`
-	NotebookDocumentSync             json.RawMessage                  `json:"notebookSync,omitempty"`
+	NotebookDocumentSync             json.RawMessage                  `json:"notebookDocumentSync,omitempty"`
 	CompletionProvider               *CompletionOptions               `json:"completionProvider,omitempty"`
 	HoverProvider                    json.RawMessage                  `json:"hoverProvider,omitempty"`
 	SignatureHelpProvider            *SignatureHelpOptions            `json:"signatureHelpProvider,omitempty"`
@@ -727,6 +727,11 @@ func (s *ServerCapabilities) UnmarshalJSON(data []byte) error {
 	}
 
 	err = UnmarshalServerCapabilityTextDocumentSync(s, &intermediate)
+	if err != nil {
+		return err
+	}
+
+	err = UnmarshalServerCapabilityNotebookDocumentSync(s, &intermediate)
 	if err != nil {
 		return err
 	}
