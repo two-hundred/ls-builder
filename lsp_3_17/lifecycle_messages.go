@@ -500,6 +500,8 @@ type ServerCapabilities struct {
 	DeclarationProvider any `json:"declarationProvider,omitempty"`
 
 	// The server provides goto definition support.
+	//
+	// DefinitionOptions | boolean | nil
 	DefinitionProvider any `json:"definitionProvider,omitempty"`
 
 	// The server provides goto type definition support.
@@ -726,12 +728,17 @@ func (s *ServerCapabilities) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	err = UnmarshalServerCapabilityTextDocumentSync(s, &intermediate)
+	err = unmarshalTextDocumentSyncServerCapabilities(s, &intermediate)
 	if err != nil {
 		return err
 	}
 
-	err = UnmarshalServerCapabilityNotebookDocumentSync(s, &intermediate)
+	err = unmarshalNotebookDocumentSyncServerCapabilities(s, &intermediate)
+	if err != nil {
+		return err
+	}
+
+	err = unmarshalLanguageFeatureServerCapabilities(s, &intermediate)
 	if err != nil {
 		return err
 	}

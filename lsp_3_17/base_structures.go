@@ -861,7 +861,7 @@ type WorkDoneProgressParams struct {
 //	}
 //
 // ```
-type WorkDownProgressOptions struct {
+type WorkDoneProgressOptions struct {
 	WorkDoneProgress *bool `json:"workDoneProgress,omitempty"`
 }
 
@@ -886,3 +886,11 @@ const (
 	TraceValueMessage = TraceValue("messages")
 	TraceValueVerbose = TraceValue("verbose")
 )
+
+// TextDocumentRegistrationOptions provides general
+// text document registration options.
+type TextDocumentRegistrationOptions struct {
+	// A document selector to identify to identify the scope of the registration.
+	// If set to null the document selector provided on the client side will be used.
+	DocumentSelector *DocumentSelector `json:"documentSelector"`
+}

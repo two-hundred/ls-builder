@@ -4,6 +4,19 @@ import "encoding/json"
 
 type TextDocumentSyncClientCapabilities struct{}
 
+func unmarshalTextDocumentSyncServerCapabilities(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+
+	err := unmarshalServerCapabilityTextDocumentSync(serverCapabilities, intermediate)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // TextDocumentSyncOptions represents the options of a text document sync
 // capability.
 type TextDocumentSyncOptions struct {
@@ -37,10 +50,10 @@ var (
 	TextDocumentSyncKindIncremental TextDocumentSyncKind = 2
 )
 
-// UnmarshalServerCapabilityTextDocumentSync unmarshals the
-// TextDocumentSync field of a server capabilities object.
+// unmarshals the TextDocumentSync
+// field of a server capabilities object.
 // This modifies the serverCapabilities object.
-func UnmarshalServerCapabilityTextDocumentSync(
+func unmarshalServerCapabilityTextDocumentSync(
 	serverCapabilities *ServerCapabilities,
 	intermediate *serverCapabilitiesIntermediate,
 ) error {

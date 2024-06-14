@@ -1,7 +1,6 @@
 package lsp
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -15,14 +14,9 @@ func (s *NotebookDocumentSyncTestSuite) Test_unmarshal_notebook_document_sync_ca
 	scheme := "file"
 	pattern := "**/*.ipynb"
 	testRegisterID := "test-register-id"
-	tests := []struct {
-		name          string
-		input         string
-		expected      *ServerCapabilities
-		expectedError error
-	}{
+	tests := []serverCapabilityFixture{
 		{
-			name: "unmarhsals notebook document registration options",
+			name: "unmarshals notebook document registration options",
 			input: `
 			{
 				"notebookDocumentSync": {
@@ -78,21 +72,14 @@ func (s *NotebookDocumentSyncTestSuite) Test_unmarshal_notebook_document_sync_ca
 				},
 			},
 		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
 	}
 
-	for _, test := range tests {
-		s.Run(test.name, func() {
-			capabilities := &ServerCapabilities{}
-			err := json.Unmarshal([]byte(test.input), capabilities)
-			if test.expectedError != nil {
-				s.Require().Error(err)
-				s.Require().Equal(test.expectedError, err)
-			} else {
-				s.Require().NoError(err)
-				s.Require().Equal(test.expected, capabilities)
-			}
-		})
-	}
+	testServerCapabilities(&s.Suite, tests)
 }
 
 func TestNotebookDocumentSyncTestSuite(t *testing.T) {

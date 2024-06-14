@@ -1,7 +1,6 @@
 package lsp
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -13,13 +12,9 @@ type TextDocumentSyncTestSuite struct {
 
 func (s *TextDocumentSyncTestSuite) Test_unmarshal_text_document_sync_capability() {
 	trueVal := true
-	tests := []struct {
-		name     string
-		input    string
-		expected *ServerCapabilities
-	}{
+	tests := []serverCapabilityFixture{
 		{
-			name:  "unmarhsals text document sync kind",
+			name:  "unmarshals text document sync kind",
 			input: "{\"textDocumentSync\":1}",
 			expected: &ServerCapabilities{
 				TextDocumentSync: TextDocumentSyncKindFull,
@@ -42,14 +37,7 @@ func (s *TextDocumentSyncTestSuite) Test_unmarshal_text_document_sync_capability
 		},
 	}
 
-	for _, test := range tests {
-		s.Run(test.name, func() {
-			capabilities := &ServerCapabilities{}
-			err := json.Unmarshal([]byte(test.input), capabilities)
-			s.Require().NoError(err)
-			s.Require().Equal(test.expected, capabilities)
-		})
-	}
+	testServerCapabilities(&s.Suite, tests)
 }
 
 func TestTextDocumentSyncTestSuite(t *testing.T) {

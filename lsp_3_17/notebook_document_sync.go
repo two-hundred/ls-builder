@@ -6,6 +6,19 @@ import (
 
 type NotebookDocumentSyncClientCapabilities struct{}
 
+func unmarshalNotebookDocumentSyncServerCapabilities(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+
+	err := unmarshalServerCapabilityNotebookDocumentSync(serverCapabilities, intermediate)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // NotebookDocumentSyncOptions describes the options
 // specific to a notebook plus its cells to be synced
 // to the server.
@@ -83,10 +96,10 @@ type notebookDocumentSyncRegOptionsIntermediate struct {
 	StaticRegistrationOptions
 }
 
-// UnmarshalServerCapabilityNotebookDocumentSync unmarshals the
-// NotebookDocumentSync field of a server capabilities object.
+// unmarshals the NotebookDocumentSync
+// field of a server capabilities object.
 // This modifies the serverCapabilities object.
-func UnmarshalServerCapabilityNotebookDocumentSync(
+func unmarshalServerCapabilityNotebookDocumentSync(
 	serverCapabilities *ServerCapabilities,
 	intermediate *serverCapabilitiesIntermediate,
 ) error {
