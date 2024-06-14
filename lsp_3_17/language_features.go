@@ -92,6 +92,21 @@ func unmarshalLanguageFeatureServerCapabilities(
 	serverCapabilities *ServerCapabilities,
 	intermediate *serverCapabilitiesIntermediate,
 ) error {
+	if err := unmarshalLanguageFeatureSet1ServerCapabilities(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalLanguageFeatureSet2ServerCapabilities(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func unmarshalLanguageFeatureSet1ServerCapabilities(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
 	if err := unmarshalServerCapabilityHoverProvider(serverCapabilities, intermediate); err != nil {
 		return err
 	}
@@ -132,6 +147,13 @@ func unmarshalLanguageFeatureServerCapabilities(
 		return err
 	}
 
+	return nil
+}
+
+func unmarshalLanguageFeatureSet2ServerCapabilities(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
 	if err := unmarshalServerCapabilityDocumentFormattingProvider(serverCapabilities, intermediate); err != nil {
 		return err
 	}
@@ -141,6 +163,50 @@ func unmarshalLanguageFeatureServerCapabilities(
 	}
 
 	if err := unmarshalServerCapabilityRenameProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilityFoldingRangeProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilitySelectionRangeProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilityLinkedEditingRangeProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilityCallHierarchyProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilitySemanticTokensProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilityMonikerProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilityTypeHierarchyProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilityInlineValueProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilityInlayHintProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilityDiagnosticProvider(serverCapabilities, intermediate); err != nil {
+		return err
+	}
+
+	if err := unmarshalServerCapabilityWorkspaceSymbolProvider(serverCapabilities, intermediate); err != nil {
 		return err
 	}
 
@@ -686,6 +752,582 @@ func unmarshalServerCapabilityRenameProvider(
 		var boolVal bool
 		if err := json.Unmarshal(intermediate.RenameProvider, &boolVal); err == nil {
 			serverCapabilities.RenameProvider = boolVal
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// FoldingRangeOptions provides server capability options for folding range requests.
+type FoldingRangeOptions struct {
+	WorkDoneProgressOptions
+}
+
+// FoldingRangeRegistrationOptions provides server capability registration
+// options for folding range requests.
+type FoldingRangeRegistrationOptions struct {
+	FoldingRangeOptions
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+}
+
+// unmarshals the FoldingRangeProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+// FoldingRangeRegistrationOptions is a superset of FoldingRangeOptions
+// so we only need to unmarshal to the former with nil values for the
+// empty fields.
+func unmarshalServerCapabilityFoldingRangeProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.FoldingRangeProvider == nil {
+		return nil
+	}
+
+	var optRegVal FoldingRangeRegistrationOptions
+	if err := json.Unmarshal(intermediate.FoldingRangeProvider, &optRegVal); err == nil {
+		serverCapabilities.FoldingRangeProvider = optRegVal
+	} else {
+		var boolVal bool
+		if err := json.Unmarshal(intermediate.FoldingRangeProvider, &boolVal); err == nil {
+			serverCapabilities.FoldingRangeProvider = boolVal
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SelectionRangeOptions provides server capability options for select range requests.
+type SelectionRangeOptions struct {
+	WorkDoneProgressOptions
+}
+
+// SelectionRangeRegistrationOptions provides server capability registration
+// options for select range requests.
+type SelectionRangeRegistrationOptions struct {
+	SelectionRangeOptions
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+}
+
+// unmarshals the SelectionRangeProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+// SelectionRangeRegistrationOptions is a superset of SelectionRangeOptions
+// so we only need to unmarshal to the former with nil values for the
+// empty fields.
+func unmarshalServerCapabilitySelectionRangeProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.SelectionRangeProvider == nil {
+		return nil
+	}
+
+	var optRegVal SelectionRangeRegistrationOptions
+	if err := json.Unmarshal(intermediate.SelectionRangeProvider, &optRegVal); err == nil {
+		serverCapabilities.SelectionRangeProvider = optRegVal
+	} else {
+		var boolVal bool
+		if err := json.Unmarshal(intermediate.SelectionRangeProvider, &boolVal); err == nil {
+			serverCapabilities.SelectionRangeProvider = boolVal
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// LinkedEditingRangeOptions provides server capability options for linked editing range requests.
+type LinkedEditingRangeOptions struct {
+	WorkDoneProgressOptions
+}
+
+// LinkedEditingRangeRegistrationOptions provides server capability registration
+// options for linked editing range requests.
+type LinkedEditingRangeRegistrationOptions struct {
+	LinkedEditingRangeOptions
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+}
+
+// unmarshals the LinkedEditingRangeProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+// LinkedEditingRangeRegistrationOptions is a superset of LinkedEditingRangeOptions
+// so we only need to unmarshal to the former with nil values for the
+// empty fields.
+func unmarshalServerCapabilityLinkedEditingRangeProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.LinkedEditingRangeProvider == nil {
+		return nil
+	}
+
+	var optRegVal LinkedEditingRangeRegistrationOptions
+	if err := json.Unmarshal(intermediate.LinkedEditingRangeProvider, &optRegVal); err == nil {
+		serverCapabilities.LinkedEditingRangeProvider = optRegVal
+	} else {
+		var boolVal bool
+		if err := json.Unmarshal(intermediate.LinkedEditingRangeProvider, &boolVal); err == nil {
+			serverCapabilities.LinkedEditingRangeProvider = boolVal
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CallHierarchyOptions provides server capability options for call hierarchy requests.
+type CallHierarchyOptions struct {
+	WorkDoneProgressOptions
+}
+
+// CallHierarchyRegistrationOptions provides server capability registration
+// options for call hierarchy requests.
+type CallHierarchyRegistrationOptions struct {
+	CallHierarchyOptions
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+}
+
+// unmarshals the CallHierarchyProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+// CallHierarchyRegistrationOptions is a superset of CallHierarchyOptions
+// so we only need to unmarshal to the former with nil values for the
+// empty fields.
+func unmarshalServerCapabilityCallHierarchyProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.CallHierarchyProvider == nil {
+		return nil
+	}
+
+	var optRegVal CallHierarchyRegistrationOptions
+	if err := json.Unmarshal(intermediate.CallHierarchyProvider, &optRegVal); err == nil {
+		serverCapabilities.CallHierarchyProvider = optRegVal
+	} else {
+		var boolVal bool
+		if err := json.Unmarshal(intermediate.CallHierarchyProvider, &boolVal); err == nil {
+			serverCapabilities.CallHierarchyProvider = boolVal
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SemanticTokensOptions provides server capability options for semantic tokens requests.
+type SemanticTokensOptions struct {
+	WorkDoneProgressOptions
+
+	// The legend used by the server.
+	Legend SemanticTokensLegend `json:"legend"`
+
+	// Server supports providing semantic tokens for a specific range of a document.
+	//
+	// bool | struct{} | nil
+	Range any `json:"range,omitempty"`
+
+	// Server supports providing semantic token for a full document.
+	//
+	// bool | SemanticDelta | nil
+	Full any `json:"full,omitempty"`
+}
+
+type semanticTokenRegistrationOptionsIntermediate struct {
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+	WorkDoneProgressOptions
+	Legend SemanticTokensLegend `json:"legend"`
+	Range  json.RawMessage      `json:"range,omitempty"` // bool | struct{} | nil
+	Full   json.RawMessage      `json:"full,omitempty"`  // bool | SemanticDelta | nil
+}
+
+// SemanticTokensRegistrationOptions provides server capability registration
+// options for semantic tokens requests.
+type SemanticTokensRegistrationOptions struct {
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+	SemanticTokensOptions
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (s *SemanticTokensRegistrationOptions) UnmarshalJSON(data []byte) error {
+	// If a struct has a custom UnmarshalJSON and it is embedded, it will be used
+	// to unmarshal the JSON data into the entire struct instead of just the embedded struct,
+	// leaving other fields empty.
+	// This is why we need to unmarshal from the top-level of the semantic token options type
+	// and can't have a clean separate of the SematicTokenRegistrationOptions
+	// and the SemanticTokensOptions types when it comes to deserialising JSON.
+	var value semanticTokenRegistrationOptionsIntermediate
+
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	s.TextDocumentRegistrationOptions = value.TextDocumentRegistrationOptions
+	s.StaticRegistrationOptions = value.StaticRegistrationOptions
+	s.SemanticTokensOptions.WorkDoneProgressOptions = value.WorkDoneProgressOptions
+	s.Legend = value.Legend
+
+	err := s.unmarshalSemanticTokenOptionsRange(value)
+	if err != nil {
+		return err
+	}
+
+	err = s.unmarshalSemanticTokenOptionsFull(value)
+	return err
+}
+
+func (s *SemanticTokensRegistrationOptions) unmarshalSemanticTokenOptionsFull(
+	value semanticTokenRegistrationOptionsIntermediate,
+) error {
+	if value.Full != nil {
+		var boolVal bool
+		if err := json.Unmarshal(value.Full, &boolVal); err == nil {
+			s.Full = boolVal
+		} else {
+			var deltaVal SemanticDelta
+			if err := json.Unmarshal(value.Full, &deltaVal); err == nil {
+				s.Full = deltaVal
+			} else {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *SemanticTokensRegistrationOptions) unmarshalSemanticTokenOptionsRange(
+	value semanticTokenRegistrationOptionsIntermediate,
+) error {
+	if value.Range != nil {
+		var boolVal bool
+		if err := json.Unmarshal(value.Range, &boolVal); err == nil {
+			s.Range = boolVal
+		} else {
+			var structVal struct{}
+			if err := json.Unmarshal(value.Range, &structVal); err == nil {
+				s.Range = structVal
+			} else {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func unmarshalServerCapabilitySemanticTokensProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.SemanticTokensProvider == nil {
+		return nil
+	}
+
+	var optRegVal SemanticTokensRegistrationOptions
+	err := json.Unmarshal(intermediate.SemanticTokensProvider, &optRegVal)
+	if err != nil {
+		return err
+	}
+
+	serverCapabilities.SemanticTokensProvider = optRegVal
+	return nil
+}
+
+// SemanticDelta represents the server's support for deltas in semantic tokens.
+type SemanticDelta struct {
+	// The server supports deltas for full documents.
+	Delta *bool `json:"delta,omitempty"`
+}
+
+// SemanticTokensLenged represent's the server's way of letting the client
+// know which numbers it is using for which types and modifiers.
+type SemanticTokensLegend struct {
+	// The token types a server uses.
+	TokenTypes []string `json:"tokenTypes"`
+
+	// The token modifiers a server uses.
+	TokenModifiers []string `json:"tokenModifiers"`
+}
+
+// MonikerOptions provides server capability options for moniker requests.
+type MonikerOptions struct {
+	WorkDoneProgressOptions
+}
+
+// MonikerRegistrationOptions provides server capability registration
+// options for moniker requests.
+type MonikerRegistrationOptions struct {
+	MonikerOptions
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+}
+
+// unmarshals the MonikerProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+// MonikerRegistrationOptions is a superset of MonikerOptions
+// so we only need to unmarshal to the former with nil values for the
+// empty fields.
+func unmarshalServerCapabilityMonikerProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.MonikerProvider == nil {
+		return nil
+	}
+
+	var optRegVal MonikerRegistrationOptions
+	if err := json.Unmarshal(intermediate.MonikerProvider, &optRegVal); err == nil {
+		serverCapabilities.MonikerProvider = optRegVal
+	} else {
+		var boolVal bool
+		if err := json.Unmarshal(intermediate.MonikerProvider, &boolVal); err == nil {
+			serverCapabilities.MonikerProvider = boolVal
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// TypeHierarchyOptions provides server capability options for type hierarchy requests.
+type TypeHierarchyOptions struct {
+	WorkDoneProgressOptions
+}
+
+// TypeHierarchyRegistrationOptions provides server capability registration
+// options for type hierarchy requests.
+type TypeHierarchyRegistrationOptions struct {
+	TypeHierarchyOptions
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+}
+
+// unmarshals the TypeHierarchyProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+// TypeHierarchyRegistrationOptions is a superset of TypeHierarchyOptions
+// so we only need to unmarshal to the former with nil values for the
+// empty fields.
+func unmarshalServerCapabilityTypeHierarchyProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.TypeHierarchyProvider == nil {
+		return nil
+	}
+
+	var optRegVal TypeHierarchyRegistrationOptions
+	if err := json.Unmarshal(intermediate.TypeHierarchyProvider, &optRegVal); err == nil {
+		serverCapabilities.TypeHierarchyProvider = optRegVal
+	} else {
+		var boolVal bool
+		if err := json.Unmarshal(intermediate.TypeHierarchyProvider, &boolVal); err == nil {
+			serverCapabilities.TypeHierarchyProvider = boolVal
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// InlineValueOptions provides server capability options for inline value requests.
+//
+// @since 3.17.0
+type InlineValueOptions struct {
+	WorkDoneProgressOptions
+}
+
+// InlineValueRegistrationOptions provides server capability registration
+// options for inline value requests.
+//
+// @since 3.17.0
+type InlineValueRegistrationOptions struct {
+	InlineValueOptions
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+}
+
+// unmarshals the InlineValueProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+// InlineValueRegistrationOptions is a superset of InlineValueOptions
+// so we only need to unmarshal to the former with nil values for the
+// empty fields.
+func unmarshalServerCapabilityInlineValueProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.InlineValueProvider == nil {
+		return nil
+	}
+
+	var optRegVal InlineValueRegistrationOptions
+	if err := json.Unmarshal(intermediate.InlineValueProvider, &optRegVal); err == nil {
+		serverCapabilities.InlineValueProvider = optRegVal
+	} else {
+		var boolVal bool
+		if err := json.Unmarshal(intermediate.InlineValueProvider, &boolVal); err == nil {
+			serverCapabilities.InlineValueProvider = boolVal
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// InlayHintOptions provides server capability options for inline value requests.
+//
+// @since 3.17.0
+type InlayHintOptions struct {
+	WorkDoneProgressOptions
+
+	// The server provides support to resolve additional
+	// information for an inlay hint item.
+	ResolveProvider *bool `json:"resolveProvider,omitempty"`
+}
+
+// InlayHintRegistrationOptions provides server capability registration
+// options for inline value requests.
+//
+// @since 3.17.0
+type InlayHintRegistrationOptions struct {
+	InlayHintOptions
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+}
+
+// unmarshals the InlayHintProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+// InlayHintRegistrationOptions is a superset of InlayHintOptions
+// so we only need to unmarshal to the former with nil values for the
+// empty fields.
+func unmarshalServerCapabilityInlayHintProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.InlayHintProvider == nil {
+		return nil
+	}
+
+	var optRegVal InlayHintRegistrationOptions
+	if err := json.Unmarshal(intermediate.InlayHintProvider, &optRegVal); err == nil {
+		serverCapabilities.InlayHintProvider = optRegVal
+	} else {
+		var boolVal bool
+		if err := json.Unmarshal(intermediate.InlayHintProvider, &boolVal); err == nil {
+			serverCapabilities.InlayHintProvider = boolVal
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// DiagnosticOptions provides server capability options for pull diagnostics behaviour.
+//
+// @since 3.17.0
+type DiagnosticOptions struct {
+	WorkDoneProgressOptions
+
+	// An optional identifier under which the diagnostics are
+	// managed by the client.
+	Identifier *string `json:"identifier,omitempty"`
+
+	// Whether the language has inter file dependencies meaning that
+	// editing code in one file can result in a different diagnostic
+	// set in another file. Inter file dependencies are common for
+	// most programming languages and typically uncommon for linters.
+	InterFileDependencies bool `json:"interFileDependencies"`
+
+	// The server provides support for workspace diagnostics as well.
+	WorkspaceDiagnostics bool `json:"workspaceDiagnostics"`
+}
+
+// DiagnosticRegistrationOptions provides server capability registration
+// options for pull diagnostics behaviour.
+//
+// @since 3.17.0
+type DiagnosticRegistrationOptions struct {
+	DiagnosticOptions
+	TextDocumentRegistrationOptions
+	StaticRegistrationOptions
+}
+
+// unmarshals the DiagnosticProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+// DiagnosticRegistrationOptions is a superset of DiagnosticOptions
+// so we only need to unmarshal to the former with nil values for the
+// empty fields.
+func unmarshalServerCapabilityDiagnosticProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.DiagnosticProvider == nil {
+		return nil
+	}
+
+	var optRegVal DiagnosticRegistrationOptions
+	if err := json.Unmarshal(intermediate.DiagnosticProvider, &optRegVal); err == nil {
+		serverCapabilities.DiagnosticProvider = optRegVal
+	} else {
+		return err
+	}
+
+	return nil
+}
+
+// WorkspaceSymbolOptions provides server capability options for workspace symbol requests.
+type WorkspaceSymbolOptions struct {
+	WorkDoneProgressOptions
+
+	// The server provides support to resolve additional
+	// information for a workspace symbol.
+	//
+	// @since 3.17.0
+	ResolveProvider *bool `json:"resolveProvider,omitempty"`
+}
+
+// unmarshals the WorkspaceSymbolProvider
+// field of a server capabilities object.
+// This modifies the serverCapabilities object.
+func unmarshalServerCapabilityWorkspaceSymbolProvider(
+	serverCapabilities *ServerCapabilities,
+	intermediate *serverCapabilitiesIntermediate,
+) error {
+	if intermediate.WorkspaceSymbolProvider == nil {
+		return nil
+	}
+
+	var optVal WorkspaceSymbolOptions
+	if err := json.Unmarshal(intermediate.WorkspaceSymbolProvider, &optVal); err == nil {
+		serverCapabilities.WorkspaceSymbolProvider = optVal
+	} else {
+		var boolVal bool
+		if err := json.Unmarshal(intermediate.WorkspaceSymbolProvider, &boolVal); err == nil {
+			serverCapabilities.WorkspaceSymbolProvider = boolVal
 		} else {
 			return err
 		}

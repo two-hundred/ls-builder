@@ -43,6 +43,8 @@ type Position struct {
 	Character UInteger `json:"character"`
 }
 
+// IndexIn returns the byte offset in the text for the position
+// considering the provided position encoding kind in determining the character offset.
 func (p Position) IndexIn(text string, posEncodingKind PositionEncodingKind) int {
 	// This code is modified from the gopls implementation found:
 	// https://cs.opensource.google/go/x/tools/+/refs/tags/v0.1.5:internal/span/utf16.go;l=70
@@ -115,6 +117,7 @@ func (p Position) IndexIn(text string, posEncodingKind PositionEncodingKind) int
 	return byteOffset
 }
 
+// EndOfLineIn returns the position at the end of the line this position is on.
 func (p Position) EndOfLineIn(content string, posEncodingKind PositionEncodingKind) Position {
 	index := p.IndexIn(content, posEncodingKind)
 	remains := content[index:]
@@ -197,6 +200,8 @@ type Range struct {
 	End Position `json:"end"`
 }
 
+// IndexesIn returns the byte offset in the text for the given range
+// considering the provided position encoding kind in determining the character offset.
 func (r Range) IndexesIn(content string, posEncodingKind PositionEncodingKind) (int, int) {
 	return r.Start.IndexIn(content, posEncodingKind), r.End.IndexIn(content, posEncodingKind)
 }

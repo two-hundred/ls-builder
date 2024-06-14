@@ -580,6 +580,698 @@ func (s *LanguageFeaturesTestSuite) Test_unmarshal_rename_provider_capability() 
 	testServerCapabilities(&s.Suite, tests)
 }
 
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_folding_range_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-folding-range"
+	language := "typescript"
+	fileScheme := "file"
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals folding range registration options",
+			input: `
+			{
+				"foldingRangeProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-folding-range",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					]
+				}
+			}`,
+			expected: &ServerCapabilities{
+				FoldingRangeProvider: FoldingRangeRegistrationOptions{
+					FoldingRangeOptions: FoldingRangeOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "unmarshals boolean",
+			input: "{\"foldingRangeProvider\":true}",
+			expected: &ServerCapabilities{
+				FoldingRangeProvider: true,
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_selection_range_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-selection-range"
+	language := "typescript"
+	fileScheme := "file"
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals selection range registration options",
+			input: `
+			{
+				"selectionRangeProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-selection-range",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					]
+				}
+			}`,
+			expected: &ServerCapabilities{
+				SelectionRangeProvider: SelectionRangeRegistrationOptions{
+					SelectionRangeOptions: SelectionRangeOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "unmarshals boolean",
+			input: "{\"selectionRangeProvider\":true}",
+			expected: &ServerCapabilities{
+				SelectionRangeProvider: true,
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_linked_editing_range_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-linked-editing-range"
+	language := "typescript"
+	fileScheme := "file"
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals linked editing range registration options",
+			input: `
+			{
+				"linkedEditingRangeProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-linked-editing-range",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					]
+				}
+			}`,
+			expected: &ServerCapabilities{
+				LinkedEditingRangeProvider: LinkedEditingRangeRegistrationOptions{
+					LinkedEditingRangeOptions: LinkedEditingRangeOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "unmarshals boolean",
+			input: "{\"linkedEditingRangeProvider\":true}",
+			expected: &ServerCapabilities{
+				LinkedEditingRangeProvider: true,
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_call_hierarchy_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-call-hierarchy"
+	language := "typescript"
+	fileScheme := "file"
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals call hierarchy registration options",
+			input: `
+			{
+				"callHierarchyProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-call-hierarchy",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					]
+				}
+			}`,
+			expected: &ServerCapabilities{
+				CallHierarchyProvider: CallHierarchyRegistrationOptions{
+					CallHierarchyOptions: CallHierarchyOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "unmarshals boolean",
+			input: "{\"callHierarchyProvider\":true}",
+			expected: &ServerCapabilities{
+				CallHierarchyProvider: true,
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_semantic_tokens_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-semantic-tokens"
+	language := "typescript"
+	fileScheme := "file"
+	delta := true
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals semantic token options with delta",
+			input: `
+			{
+				"semanticTokensProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-semantic-tokens",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					],
+					"legend": {
+						"tokenTypes": ["namespace", "type", "class", "enum", "interface", "struct", "typeParameter"],
+						"tokenModifiers": ["declaration", "definition", "readonly", "static", "deprecated", "abstract", "async"]
+					},
+					"range": true,
+					"full": {
+						"delta": true
+					}
+				}
+			}`,
+			expected: &ServerCapabilities{
+				SemanticTokensProvider: SemanticTokensRegistrationOptions{
+					SemanticTokensOptions: SemanticTokensOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+						Legend: SemanticTokensLegend{
+							TokenTypes:     []string{"namespace", "type", "class", "enum", "interface", "struct", "typeParameter"},
+							TokenModifiers: []string{"declaration", "definition", "readonly", "static", "deprecated", "abstract", "async"},
+						},
+						Range: true,
+						Full: SemanticDelta{
+							Delta: &delta,
+						},
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "unmarshals semantic token options without delta",
+			input: `
+			{
+				"semanticTokensProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-semantic-tokens",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					],
+					"legend": {
+						"tokenTypes": ["namespace", "type", "class", "enum", "interface", "struct", "typeParameter"],
+						"tokenModifiers": ["declaration", "definition", "readonly", "static", "deprecated", "abstract", "async"]
+					},
+					"range": {},
+					"full": true
+				}
+			}`,
+			expected: &ServerCapabilities{
+				SemanticTokensProvider: SemanticTokensRegistrationOptions{
+					SemanticTokensOptions: SemanticTokensOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+						Legend: SemanticTokensLegend{
+							TokenTypes:     []string{"namespace", "type", "class", "enum", "interface", "struct", "typeParameter"},
+							TokenModifiers: []string{"declaration", "definition", "readonly", "static", "deprecated", "abstract", "async"},
+						},
+						Range: struct{}{},
+						Full:  true,
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_moniker_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-moniker"
+	language := "typescript"
+	fileScheme := "file"
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals moniker registration options",
+			input: `
+			{
+				"monikerProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-moniker",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					]
+				}
+			}`,
+			expected: &ServerCapabilities{
+				MonikerProvider: MonikerRegistrationOptions{
+					MonikerOptions: MonikerOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "unmarshals boolean",
+			input: "{\"monikerProvider\":true}",
+			expected: &ServerCapabilities{
+				MonikerProvider: true,
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_type_hierarchy_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-type-hierarchy"
+	language := "typescript"
+	fileScheme := "file"
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals type hierarchy registration options",
+			input: `
+			{
+				"typeHierarchyProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-type-hierarchy",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					]
+				}
+			}`,
+			expected: &ServerCapabilities{
+				TypeHierarchyProvider: TypeHierarchyRegistrationOptions{
+					TypeHierarchyOptions: TypeHierarchyOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "unmarshals boolean",
+			input: "{\"typeHierarchyProvider\":true}",
+			expected: &ServerCapabilities{
+				TypeHierarchyProvider: true,
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_inline_value_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-inline-value"
+	language := "typescript"
+	fileScheme := "file"
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals inline value registration options",
+			input: `
+			{
+				"inlineValueProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-inline-value",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					]
+				}
+			}`,
+			expected: &ServerCapabilities{
+				InlineValueProvider: InlineValueRegistrationOptions{
+					InlineValueOptions: InlineValueOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "unmarshals boolean",
+			input: "{\"inlineValueProvider\":true}",
+			expected: &ServerCapabilities{
+				InlineValueProvider: true,
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_inlay_hint_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-inlay-hint"
+	language := "typescript"
+	fileScheme := "file"
+	resolveProvider := true
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals inlay hint registration options",
+			input: `
+			{
+				"inlayHintProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-inlay-hint",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					],
+					"resolveProvider": true
+				}
+			}`,
+			expected: &ServerCapabilities{
+				InlayHintProvider: InlayHintRegistrationOptions{
+					InlayHintOptions: InlayHintOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+						ResolveProvider: &resolveProvider,
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "unmarshals boolean",
+			input: "{\"inlayHintProvider\":true}",
+			expected: &ServerCapabilities{
+				InlayHintProvider: true,
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_diagnostic_provider_capability() {
+	workDoneProgress := true
+	testRegisterID := "test-register-id-diagnostic"
+	language := "typescript"
+	fileScheme := "file"
+	identifier := "test-identifier"
+	interFileDependencies := true
+	workspaceDiagnostics := false
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals diagnostic registration options",
+			input: `
+			{
+				"diagnosticProvider": {
+					"workDoneProgress": true,
+					"id": "test-register-id-diagnostic",
+					"documentSelector": [
+						{
+							"language": "typescript",
+							"scheme": "file"
+						}
+					],
+					"identifier": "test-identifier",
+					"interFileDependencies": true,
+					"workspaceDiagnostics": false
+				}
+			}`,
+			expected: &ServerCapabilities{
+				DiagnosticProvider: DiagnosticRegistrationOptions{
+					DiagnosticOptions: DiagnosticOptions{
+						WorkDoneProgressOptions: WorkDoneProgressOptions{
+							WorkDoneProgress: &workDoneProgress,
+						},
+						Identifier:            &identifier,
+						InterFileDependencies: interFileDependencies,
+						WorkspaceDiagnostics:  workspaceDiagnostics,
+					},
+					StaticRegistrationOptions: StaticRegistrationOptions{
+						ID: &testRegisterID,
+					},
+					TextDocumentRegistrationOptions: TextDocumentRegistrationOptions{
+						DocumentSelector: &DocumentSelector{
+							{
+								Language: &language,
+								Scheme:   &fileScheme,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_workspace_symbol_provider_capability() {
+	workDoneProgress := true
+	resolveProvider := true
+	tests := []serverCapabilityFixture{
+		{
+			name: "unmarshals workspace symbol options",
+			input: `
+			{
+				"workspaceSymbolProvider": {
+					"workDoneProgress": true,
+					"resolveProvider": true
+				}
+			}`,
+			expected: &ServerCapabilities{
+				WorkspaceSymbolProvider: WorkspaceSymbolOptions{
+					WorkDoneProgressOptions: WorkDoneProgressOptions{
+						WorkDoneProgress: &workDoneProgress,
+					},
+					ResolveProvider: &resolveProvider,
+				},
+			},
+		},
+		{
+			name:  "unmarshals boolean",
+			input: "{\"workspaceSymbolProvider\":true}",
+			expected: &ServerCapabilities{
+				WorkspaceSymbolProvider: true,
+			},
+		},
+		{
+			name:     "unmarshals missing value to nil",
+			input:    "{}",
+			expected: &ServerCapabilities{},
+		},
+	}
+
+	testServerCapabilities(&s.Suite, tests)
+}
+
 func TestLanguageFeaturesTestSuite(t *testing.T) {
 	suite.Run(t, new(LanguageFeaturesTestSuite))
 }

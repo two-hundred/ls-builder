@@ -596,6 +596,11 @@ type ServerCapabilities struct {
 	//
 	// @since 3.16.0
 	// SemanticTokensOptions | SemanticTokensRegistrationOptions | nil
+	//
+	// With the way Go's unmarshalling JSON into structs work, SemanticTokensRegistrationOptions
+	// will succeed even if the registration-specific option fields are not present so
+	// `SemanticTokensOptions` and `SemanticTokensRegistrationOptions` are equivalent
+	// for a runtime serverCapabilities object.
 	SemanticTokensProvider any `json:"semanticTokensProvider,omitempty"`
 
 	// Whether server provides moniker support.
