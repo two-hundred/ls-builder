@@ -4,63 +4,943 @@ import (
 	"encoding/json"
 )
 
-type CompletionClientCapabilities struct{}
+// CompletionClientCapabilities describes the capabilities of a client
+// for completion requests.
+type CompletionClientCapabilities struct {
+	// Whether completion supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 
-type HoverClientCapabilities struct{}
+	// The client supports the following `CompletionItem` specific capabilities.
+	CompletionItem *CompletionItemCapabilities `json:"completionItem,omitempty"`
 
-type SignatureHelpClientCapabilities struct{}
+	// The completion item kind values the client support
+	CompletionItemKind *CompletionItemKindCapabilities `json:"completionItemKind,omitempty"`
 
-type DeclarationClientCapabilities struct{}
+	// The client supports to send additional context information for a
+	// `textDocument/completion` request.
+	ContextSupport *bool `json:"contextSupport,omitempty"`
 
-type DefinitionClientCapabilities struct{}
+	// The client's default when the completion item doesn't provide a
+	// `insertTextMode` property.
+	//
+	// @since 3.17.0
+	InsertTextMode *CompletionItemInsertTextMode `json:"insertTextMode,omitempty"`
 
-type TypeDefinitionClientCapabilities struct{}
+	// The client supports the following `CompletionList` specific
+	// capabilities.
+	//
+	// @since 3.17.0
+	CompletionList *CompletionListCapabilities `json:"completionList,omitempty"`
+}
 
-type ImplementationClientCapabilities struct{}
+// CompletionListCapabilities describes the capabilities of a client
+// for completion lists.
+type CompletionListCapabilities struct {
+	// The client supports the following itemDefaults on
+	// a completion list.
+	//
+	// The value lists the supported property names of the
+	// `CompletionList.itemDefaults` object. If omitted
+	// no properties are supported.
+	//
+	// @since 3.17.0
+	ItemDefaults []string `json:"itemDefaults,omitempty"`
+}
 
-type ReferenceClientCapabilities struct{}
+// CompletionItemKindCapabilities describes the capabilities of a client
+// for completion item kinds.
+type CompletionItemKindCapabilities struct {
+	// The completion item kind values the client supports. When this
+	// property exists the client also guarantees that it will
+	// handle values outside its set gracefully and falls back
+	// to a default value when unknown.
+	//
+	// If this property is not present the client only supports
+	// the completion items kinds from `Text` to `Reference` as defined in
+	// the initial version of the protocol.
+	ValueSet []CompletionItemKind `json:"valueSet,omitempty"`
+}
 
-type DocumentHighlightClientCapabilities struct{}
+// CompletionItemKind represents a kind of completion item.
+type CompletionItemKind = Integer
 
-type DocumentSymbolClientCapabilities struct{}
+const (
+	// CompletionItemKindText is a plain text completion item.
+	CompletionItemKindText CompletionItemKind = 1
 
-type CodeActionClientCapabilities struct{}
+	// CompletionItemKindMethod is a method completion item.
+	CompletionItemKindMethod CompletionItemKind = 2
 
-type CodeLensClientCapabilities struct{}
+	// CompletionItemKindFunction is a function completion item.
+	CompletionItemKindFunction CompletionItemKind = 3
 
-type DocumentLinkClientCapabilities struct{}
+	// CompletionItemKindConstructor is a constructor completion item.
+	CompletionItemKindConstructor CompletionItemKind = 4
 
-type DocumentColorClientCapabilities struct{}
+	// CompletionItemKindField is a field completion item.
+	CompletionItemKindField CompletionItemKind = 5
 
-type DocumentFormattingClientCapabilities struct{}
+	// CompletionItemKindVariable is a variable completion item.
+	CompletionItemKindVariable CompletionItemKind = 6
 
-type DocumentRangeFormattingClientCapabilities struct{}
+	// CompletionItemKindClass is a class completion item.
+	CompletionItemKindClass CompletionItemKind = 7
 
-type DocumentOnTypeFormattingClientCapabilities struct{}
+	// CompletionItemKindInterface is an interface completion item.
+	CompletionItemKindInterface CompletionItemKind = 8
 
-type RenameClientCapabilities struct{}
+	// CompletionItemKindModule is a module completion item.
+	CompletionItemKindModule CompletionItemKind = 9
 
-type FoldingRangeClientCapabilities struct{}
+	// CompletionItemKindProperty is a property completion item.
+	CompletionItemKindProperty CompletionItemKind = 10
 
-type SelectionRangeClientCapabilities struct{}
+	// CompletionItemKindUnit is a unit completion item.
+	CompletionItemKindUnit CompletionItemKind = 11
 
-type LinkedEditingRangeClientCapabilities struct{}
+	// CompletionItemKindValue is a value completion item.
+	CompletionItemKindValue CompletionItemKind = 12
 
-type CallHierarchyClientCapabilities struct{}
+	// CompletionItemKindEnum is an enum completion item.
+	CompletionItemKindEnum CompletionItemKind = 13
 
-type SemanticTokensClientCapabilities struct{}
+	// CompletionItemKindKeyword is a keyword completion item.
+	CompletionItemKindKeyword CompletionItemKind = 14
 
-type MonikerClientCapabilities struct{}
+	// CompletionItemKindSnippet is a snippet completion item.
+	CompletionItemKindSnippet CompletionItemKind = 15
 
-type InlayHintClientCapabilities struct{}
+	// CompletionItemKindColor is a color completion item.
+	CompletionItemKindColor CompletionItemKind = 16
 
-type InlineValueClientCapabilities struct{}
+	// CompletionItemKindFile is a file completion item.
+	CompletionItemKindFile CompletionItemKind = 17
 
-type TypeHierarchyClientCapabilities struct{}
+	// CompletionItemKindReference is a reference completion item.
+	CompletionItemKindReference CompletionItemKind = 18
 
-type CompletionOptions struct{}
+	// CompletionItemKindFolder is a folder completion item.
+	CompletionItemKindFolder CompletionItemKind = 19
 
-type SignatureHelpOptions struct{}
+	// CompletionItemKindEnumMember is an enum member completion item.
+	CompletionItemKindEnumMember CompletionItemKind = 20
+
+	// CompletionItemKindConstant is a constant completion item.
+	CompletionItemKindConstant CompletionItemKind = 21
+
+	// CompletionItemKindStruct is a struct completion item.
+	CompletionItemKindStruct CompletionItemKind = 22
+
+	// CompletionItemKindEvent is an event completion item.
+	CompletionItemKindEvent CompletionItemKind = 23
+
+	// CompletionItemKindOperator is an operator completion item.
+	CompletionItemKindOperator CompletionItemKind = 24
+
+	// CompletionItemKindTypeParameter is a type parameter completion item.
+	CompletionItemKindTypeParameter CompletionItemKind = 25
+)
+
+// CompletionItemCapabilities describes the capabilities of a client
+// for completion items.
+type CompletionItemCapabilities struct {
+	// Client supports snippets as insert text.
+	//
+	// A snippet can define tab stops and placeholders with `$1`, `$2`
+	// and `${3:foo}`. `$0` defines the final tab stop, it defaults to
+	// the end of the snippet. Placeholders with equal identifiers are
+	// linked, that is typing in one will update others too.
+	SnippetSupport *bool `json:"snippetSupport,omitempty"`
+
+	// Client supports commit characters on a completion item.
+	CommitCharactersSupport *bool `json:"commitCharactersSupport,omitempty"`
+
+	// Client supports the follow content formats for the documentation
+	// property. The order describes the preferred format of the client.
+	DocumentationFormat []MarkupKind `json:"documentationFormat,omitempty"`
+
+	// Client supports the deprecated property on a completion item.
+	DeprecatedSupport *bool `json:"deprecatedSupport,omitempty"`
+
+	// Client supports the preselect property on a completion item.
+	PreselectSupport *bool `json:"preselectSupport,omitempty"`
+
+	// Client supports the tag property on a completion item. Clients
+	// supporting tags have to handle unknown tags gracefully. Clients
+	// especially need to preserve unknown tags when sending a completion
+	// item back to the server in a resolve call.
+	//
+	// @since 3.15.0
+	TagSupport *CompletionItemTagSupport `json:"tagSupport,omitempty"`
+
+	// Client supports insert replace edit to control different behavior if
+	// a completion item is inserted in the text or should replace text.
+	//
+	// @since 3.16.0
+	InsertReplaceSupport *bool `json:"insertReplaceSupport,omitempty"`
+
+	// Indicates which properties a client can resolve lazily on a
+	// completion item. Before version 3.16.0 only the predefined properties
+	// `documentation` and `detail` could be resolved lazily.
+	//
+	// @since 3.16.0
+	ResolveSupport *CompletionItemResolveSupport `json:"resolveSupport,omitempty"`
+
+	// The client supports the `insertTextMode` property on
+	// a completion item to override the whitespace handling
+	// mode as defined by the client (see `insertTextMode`).
+	//
+	// @since 3.16.0
+	InsertTextModeSupport *CompletionItemInsertTextModeSupport `json:"insertTextModeSupport,omitempty"`
+
+	// The client has support for completion item label
+	// details (see also `CompletionItemLabelDetails`).
+	//
+	// @since 3.17.0
+	LabelDetailsSupport *bool `json:"labelDetailsSupport,omitempty"`
+}
+
+// CompletionItemCapabilities describes the capabilities of a client
+// for completion items with respect to insert text mode.
+type CompletionItemInsertTextModeSupport struct {
+	ValueSet []CompletionItemInsertTextMode `json:"valueSet"`
+}
+
+// CompletionItemInsertTextMode determines how whitespace
+// and indentation is handled during completion item insertion.
+//
+// @since 3.16.0
+type CompletionItemInsertTextMode = Integer
+
+const (
+	// CompletionItemInsertTextModeAsIs means that the
+	// insertion or string replacement is taken as it is.
+	// If the value is multi line, the lines below the cursor
+	// will be inserted using the indentation defined in the string value.
+	// The client will not apply any kind of adjustments to the string.
+	CompletionItemInsertTextModeAsIs CompletionItemInsertTextMode = 1
+
+	// CompletionItemInsertTextModeAdjustIndentation means that
+	// the editor adjusts leading whitespace of new lines so that tehy match
+	// the indentation up to the cursor of the line for which the item is accepted.
+	//
+	// Consider a line lik this: <2tabs><cursor><3tabs>foo. Accepting a
+	// multi line completion item is indentned using 2 tabs and all
+	// following lines inserted will be indented using 2 tabs as well.
+	CompletionItemInsertTextModeAdjustIndentation CompletionItemInsertTextMode = 2
+)
+
+// CompletionItemResolveSupport describes the capabilities of a client
+// for resolving completion items lazily.
+type CompletionItemResolveSupport struct {
+	// The properties that a client can resolve lazily.
+	Properties []string `json:"properties"`
+}
+
+// CompletionItemTagSupport describes the capabilities of a client
+// for completion item tags.
+type CompletionItemTagSupport struct {
+	// The tags supported by the client.
+	ValueSet []CompletionItemTag `json:"valueSet"`
+}
+
+// CompletionItemTags are extra annotations that tweak the rendering
+// of a completion item.
+//
+// @since 3.15.0
+type CompletionItemTag = Integer
+
+const (
+	// CompletionItemTagDeprecated renders a completion
+	// as obsolete, usually using a strike-out.
+	CompletionItemTagDeprecated CompletionItemTag = 1
+)
+
+// HoverClientCapabilities describes the capabilities of a client
+// for hover requests.
+type HoverClientCapabilities struct {
+	// Whether hover supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// SignatureHelpClientCapabilities describes the capabilities of a client
+// for signature help requests.
+type SignatureHelpClientCapabilities struct {
+	// Whether signature help supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// The client supports the following `SignatureInformation`
+	// specific properties.
+	SignatureInformation *SignatureInformationCapabilities `json:"signatureInformation,omitempty"`
+
+	// The client supports to send additional context information for a
+	// `textDocument/signatureHelp` request. A client that opts into
+	// contextSupport will also support the `retriggerCharacters` on
+	// `SignatureHelpOptions`.
+	//
+	// @since 3.15.0
+	ContextSupport *bool `json:"contextSupport,omitempty"`
+}
+
+// SignatureInformationCapabilities describes the capabilities of a client
+// for signature information.
+type SignatureInformationCapabilities struct {
+	// Client supports the follow content formats for the documentation
+	// property. The order describes the preferred format of the client.
+	DocumentationFormat []MarkupKind `json:"documentationFormat,omitempty"`
+
+	// Client capabilities specific to parameter information.
+	ParameterInformation *ParameterInformationCapabilities `json:"parameterInformation,omitempty"`
+
+	// The client supports the `activeParameter` property on
+	// a `SignatureInformation` literal.
+	ActiveParameterSupport *bool `json:"activeParameterSupport,omitempty"`
+}
+
+// ParameterInformationCapabilities describes the capabilities of a client
+// for parameter information.
+type ParameterInformationCapabilities struct {
+	// The client supports processing label offsets instead of a
+	// simple label string.
+	//
+	// @since 3.14.0
+	LabelOffsetSupport *bool `json:"labelOffsetSupport,omitempty"`
+}
+
+// DeclarationClientCapabilities describes the capabilities of a client
+// for goto declaration requests.
+type DeclarationClientCapabilities struct {
+	// Whether declaration supports dynamic registration. If this is set to
+	// `true` the client supports the new `DeclarationRegistrationOptions`
+	// return value for the corresponding server capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// The client supports additional metadata in the form of declaration links.
+	LinkSupport *bool `json:"linkSupport,omitempty"`
+}
+
+// DefinitionClientCapabilities describes the capabilities of a client
+// for goto definition requests.
+type DefinitionClientCapabilities struct {
+	// Whether definition supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// The client supports additional metadata in the form of definition links.
+	LinkSupport *bool `json:"linkSupport,omitempty"`
+}
+
+// TypeDefinitionClientCapabilities describes the capabilities of a client
+// for goto type definition requests.
+type TypeDefinitionClientCapabilities struct {
+	// Whether implementation supports dynamic registration. If this is set to
+	// `true` the client supports the new `TypeDefinitionRegistrationOptions`
+	// return value for the corresponding server capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// The client supports additional metadata in the form of definition links.
+	//
+	// @since 3.14.0
+	LinkSupport *bool `json:"linkSupport,omitempty"`
+}
+
+// ImplementationClientCapabilities describes the capabilities of a client
+// for goto implementation requests.
+type ImplementationClientCapabilities struct {
+	// Whether implementation supports dynamic registration. If this is set to
+	// `true` the client supports the new `ImplementationRegistrationOptions`
+	// return value for the corresponding server capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// The client supports additional metadata in the form of definition links.
+	//
+	// @since 3.14.0
+	LinkSupport *bool `json:"linkSupport,omitempty"`
+}
+
+// ReferencesClientCapabilities describes the capabilities of a client
+// for find references requests.
+type ReferenceClientCapabilities struct {
+	// Whether references supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// DocumentHighlightClientCapabilities describes the capabilities of a client
+// for document highlight requests.
+type DocumentHighlightClientCapabilities struct {
+	// Whether document highlight supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// DocumentSymbolClientCapabilities describes the capabilities of a client
+// for document symbol requests.
+type DocumentSymbolClientCapabilities struct {
+	// Whether document symbol supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// Specific capabilities for the `SymbolKind` in the
+	// `textDocument/documentSymbol` request.
+	SymbolKind *SymbolKindCapabilities `json:"symbolKind,omitempty"`
+
+	// The client supports hierarchical document symbols.
+	HierarchicalDocumentSymbolSupport *bool `json:"hierarchicalDocumentSymbolSupport,omitempty"`
+
+	// The client supports tags on `SymbolInformation`. Tags are supported on
+	// `DocumentSymbol` if `hierarchicalDocumentSymbolSupport` is set to true.
+	// Clients supporting tags have to handle unknown tags gracefully.
+	//
+	// @since 3.16.0
+	TagSupport *SymbolTagSupport `json:"tagSupport,omitempty"`
+
+	// The client supports an additional label presented in the UI when
+	// registering a document symbol provider.
+	//
+	// @since 3.16.0
+	LabelSupport *bool `json:"labelSupport,omitempty"`
+}
+
+// CodeActionClientCapabilities describes the capabilities of a client
+// for code action requests.
+type CodeActionClientCapabilities struct {
+	// Whether code action supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// The client supports code action literals as a valid
+	// response of the `textDocument/codeAction` request.
+	//
+	// @since 3.8.0
+	CodeActionLiteralSupport *CodeActionLiteralSupport `json:"codeActionLiteralSupport,omitempty"`
+
+	// Whether code action supports the `isPreferred` property.
+	//
+	// @since 3.15.0
+	IsPreferredSupport *bool `json:"isPreferredSupport,omitempty"`
+
+	// Whether code action supports the `disabled` property.
+	//
+	// @since 3.16.0
+	DisabledSupport *bool `json:"disabledSupport,omitempty"`
+
+	// Whether code action supports the `data` property which is
+	// preserved between a `textDocument/codeAction` and a
+	// `codeAction/resolve` request.
+	//
+	// @since 3.16.0
+	DataSupport *bool `json:"dataSupport,omitempty"`
+
+	// Whether the client supports resolving additional code action
+	// properties via a separate `codeAction/resolve` request.
+	//
+	// @since 3.16.0
+	ResolveSupport *CodeActionResolveSupport `json:"resolveSupport,omitempty"`
+
+	// Whether the client honors the change annotations in
+	// text edits and resource operations returned via the
+	// `CodeAction#edit` property by for example presenting
+	// the workspace edit in the user interface and asking
+	// for confirmation.
+	//
+	// @since 3.16.0
+	HonorsChangeAnnotations *bool `json:"honorsChangeAnnotations,omitempty"`
+}
+
+// CodeActionResolveSupport describes the capabilities of a client
+// for resolving code actions lazily.
+type CodeActionResolveSupport struct {
+	// The properties that a client can resolve lazily.
+	Properties []string `json:"properties"`
+}
+
+// CodeActionLiteralSupport describes the capabilities of a client
+// for code action literals.
+type CodeActionLiteralSupport struct {
+	// The code action kind is supported with the following value
+	// set.
+	CodeActionKind *CodeActionKindCapabilities `json:"codeActionKind,omitempty"`
+}
+
+// CodeActionKindCapabilities describes the capabilities of a client
+// for code action kinds.
+type CodeActionKindCapabilities struct {
+	// The code action kind values the client supports. When this
+	// property exists the client also guarantees that it will
+	// handle values outside its set gracefully and falls back
+	// to a default value when unknown.
+	ValueSet []CodeActionKind `json:"valueSet,omitempty"`
+}
+
+// CodeLensClientCapabilities describes the capabilities of a client
+// for code lens requests.
+type CodeLensClientCapabilities struct {
+	// Whether code lens supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// DocumentLinkClientCapabilities describes the capabilities of a client
+// for document link requests.
+type DocumentLinkClientCapabilities struct {
+	// Whether document link supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// Whether the client supports the `tooltip` property on `DocumentLink`.
+	//
+	// @since 3.15.0
+	TooltipSupport *bool `json:"tooltipSupport,omitempty"`
+}
+
+// DocumentColorClientCapabilities describes the capabilities of a client
+// for document color requests.
+type DocumentColorClientCapabilities struct {
+	//  Whether document color supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// DocumentFormattingClientCapabilities describes the capabilities of a client
+// for document formatting requests.
+type DocumentFormattingClientCapabilities struct {
+	// Whether formatting supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// DocumentRangeFormattingClientCapabilities describes the capabilities of a client
+// for document range formatting requests.
+type DocumentRangeFormattingClientCapabilities struct {
+	// Whether formatting supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// DocumentOnTypeFormattingClientCapabilities describes the capabilities of a client
+// for document on type formatting requests.
+type DocumentOnTypeFormattingClientCapabilities struct {
+	// Whether on type formatting supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// RenameClientCapabilities describes the capabilities of a client
+// for rename requests.
+type RenameClientCapabilities struct {
+	// Whether rename supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// Client supports testing for validity of rename operations
+	// before execution.
+	//
+	// @since version 3.12.0
+	PrepareSupport *bool `json:"prepareSupport,omitempty"`
+
+	// Client supports the default behavior result
+	// (`{ defaultBehavior: boolean }`).
+	//
+	// The value indicates the default behavior used by the
+	// client.
+	//
+	// @since version 3.16.0
+	PrepareSupportDefaultBehavior *PrepareSupportDefaultBehavior `json:"prepareSupportDefaultBehavior,omitempty"`
+
+	// Whether the client honors the change annotations in
+	// text edits and resource operations returned via the
+	// rename request's workspace edit by for example presenting
+	// the workspace edit in the user interface and asking
+	// for confirmation.
+	//
+	// @since 3.16.0
+	HonorsChangeAnnotations *bool `json:"honorsChangeAnnotations,omitempty"`
+}
+
+// PrepareSupportDefaultBehavior is the default behavior used by the client
+// for testing validity of operations such as rename.
+type PrepareSupportDefaultBehavior = Integer
+
+const (
+	// PrepareSupportDefaultBehaviorIdentifier
+	// means the client's default behavior is to select the identifier
+	// according to the language's syntax rule.
+	PrepareSupportDefaultBehaviorIdentifier PrepareSupportDefaultBehavior = 1
+)
+
+// FoldingRangeClientCapabilities describes the capabilities of a client
+// for folding range requests.
+type FoldingRangeClientCapabilities struct {
+	// Whether implementation supports dynamic registration for folding range
+	// providers. If this is set to `true` the client supports the new
+	// `FoldingRangeRegistrationOptions` return value for the corresponding
+	// server capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// The maximum number of folding ranges that the client prefers to receive
+	// per document. The value serves as a hint, servers are free to follow the
+	// limit.
+	RangeLimit *UInteger `json:"rangeLimit,omitempty"`
+
+	// If set, the client signals that it only supports folding complete lines.
+	// If set, client will ignore specified `startCharacter` and `endCharacter`
+	// properties in a FoldingRange.
+	LineFoldingOnly *bool `json:"lineFoldingOnly,omitempty"`
+
+	// Specific options for the folding range kind.
+	//
+	// @since 3.17.0
+	FoldingRangeKind *FoldingRangeKindCapabilities `json:"foldingRangeKind,omitempty"`
+
+	// Specific options for the folding range.
+	// @since 3.17.0
+	FoldingRange *FoldingRangeCapabilities `json:"foldingRange,omitempty"`
+}
+
+// FoldingRangeCapabilities describes the additiona options
+// for the capabilities of a client for folding ranges.
+type FoldingRangeCapabilities struct {
+	// If set, the client signals that it supports setting collapsedText on
+	// folding ranges to display custom labels instead of the default text.
+	//
+	// @since 3.17.0
+	CollapsedText *bool `json:"collapsedText,omitempty"`
+}
+
+// FoldingRangeKindCapabilities describes the capabilities of a client
+// for folding range kinds.
+type FoldingRangeKindCapabilities struct {
+	// The folding range kind values the client supports. When this
+	// property exists the client also guarantees that it will
+	// handle values outside its set gracefully and falls back
+	// to a default value when unknown.
+	ValueSet []FoldingRangeKind `json:"valueSet,omitempty"`
+}
+
+// FoldingRangeKind represents predefined
+// range kinds.
+type FoldingRangeKind = string
+
+const (
+	// FoldingRangeKindComment represents a folding range
+	// for a comment.
+	FoldingRangeKindComment FoldingRangeKind = "comment"
+
+	// FoldingRangeKindImports represents a folding range
+	// for imports.
+	FoldingRangeKindImports FoldingRangeKind = "imports"
+
+	// FoldingRangeKindRegion represents a folding range
+	// for a region (e.g. `#region`).
+	FoldingRangeKindRegion FoldingRangeKind = "region"
+)
+
+// SelectionRangeClientCapabilities describes the capabilities of a client
+// for selection range requests.
+type SelectionRangeClientCapabilities struct {
+	// Whether implementation supports dynamic registration for selection range
+	// providers. If this is set to `true` the client supports the new
+	// `SelectionRangeRegistrationOptions` return value for the corresponding
+	// server capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// LinkedEditingRangeClientCapabilities describes the capabilities of a client
+// for linked editing range requests.
+type LinkedEditingRangeClientCapabilities struct {
+	// Whether the implementation supports dynamic registration.
+	// If this is set to `true` the client supports the new
+	// `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
+	// return value for the corresponding server capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// CallHierarchyClientCapabilities describes the capabilities of a client
+// for call hierarchy requests.
+type CallHierarchyClientCapabilities struct {
+	// Whether implementation supports dynamic registration. If this is set to
+	// `true` the client supports the new `(TextDocumentRegistrationOptions &
+	// StaticRegistrationOptions)` return value for the corresponding server
+	// capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// SemanticTokensClientCapabilities describes the capabilities of a client
+// for semantic tokens requests.
+type SemanticTokensClientCapabilities struct {
+	// Whether implementation supports dynamic registration. If this is set to
+	// `true` the client supports the new `(TextDocumentRegistrationOptions &
+	// StaticRegistrationOptions)` return value for the corresponding server
+	// capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// Which requests the client supports and might send to the server
+	// depending on the server's capability. Please note that clients might not
+	// show semantic tokens or degrade some of the user experience if a range
+	// or full request is advertised by the client but not provided by the
+	// server. If for example the client capability `requests.full` and
+	// `request.range` are both set to true but the server only provides a
+	// range provider the client might not render a minimap correctly or might
+	// even decide to not show any semantic tokens at all.
+	Requests SemanticTokensRequests `json:"requests"`
+
+	// The token types that the client supports.
+	TokenTypes []string `json:"tokenTypes"`
+
+	// The token modifiers that the client supports.
+	TokenModifiers []string `json:"tokenModifiers"`
+
+	// The formats the clients supports.
+	Formats []TokenFormat `json:"formats"`
+
+	// Whether the client supports tokens that can overlap each other.
+	OverlappingTokenSupport *bool `json:"overlappingTokenSupport,omitempty"`
+
+	// Whether the client supports tokens that can span multiple lines.
+	MultilineTokenSupport *bool `json:"multilineTokenSupport,omitempty"`
+
+	// Whether the client allows the server to actively cancel a
+	// semantic token request, e.g. supports returning
+	// ErrorCodes.ServerCancelled. If a server does the client
+	// needs to retrigger the request.
+	//
+	// @since 3.17.0
+	ServerCancelSupport *bool `json:"serverCancelSupport,omitempty"`
+
+	// Whether the client uses semantic tokens to augment existing
+	// syntax tokens. If set to `true` client side created syntax
+	// tokens and semantic tokens are both used for colorization. If
+	// set to `false` the client only uses the returned semantic tokens
+	// for colorization.
+	//
+	// If the value is `undefined` then the client behavior is not
+	// specified.
+	//
+	// @since 3.17.0
+	AugmentsSyntaxTokens *bool `json:"augmentsSyntaxTokens,omitempty"`
+}
+
+type semanticTokenRequestsIntermediate struct {
+	Range json.RawMessage `json:"range,omitempty"`
+	Full  json.RawMessage `json:"full,omitempty"`
+}
+
+type semanticTokensClientCapabilitiesIntermediate struct {
+	DynamicRegistration     *bool                             `json:"dynamicRegistration,omitempty"`
+	Requests                semanticTokenRequestsIntermediate `json:"requests"`
+	TokenTypes              []string                          `json:"tokenTypes"`
+	TokenModifiers          []string                          `json:"tokenModifiers"`
+	Formats                 []TokenFormat                     `json:"formats"`
+	OverlappingTokenSupport *bool                             `json:"overlappingTokenSupport,omitempty"`
+	MultilineTokenSupport   *bool                             `json:"multilineTokenSupport,omitempty"`
+	ServerCancelSupport     *bool                             `json:"serverCancelSupport,omitempty"`
+	AugmentsSyntaxTokens    *bool                             `json:"augmentsSyntaxTokens,omitempty"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (c *SemanticTokensClientCapabilities) UnmarshalJSON(data []byte) error {
+	var intermediate semanticTokensClientCapabilitiesIntermediate
+	if err := json.Unmarshal(data, &intermediate); err != nil {
+		return err
+	}
+
+	c.DynamicRegistration = intermediate.DynamicRegistration
+	c.TokenTypes = intermediate.TokenTypes
+	c.TokenModifiers = intermediate.TokenModifiers
+	c.Formats = intermediate.Formats
+	c.OverlappingTokenSupport = intermediate.OverlappingTokenSupport
+	c.MultilineTokenSupport = intermediate.MultilineTokenSupport
+	c.ServerCancelSupport = intermediate.ServerCancelSupport
+	c.AugmentsSyntaxTokens = intermediate.AugmentsSyntaxTokens
+
+	if intermediate.Requests.Range != nil {
+		var rangeBool bool
+		if err := json.Unmarshal(intermediate.Requests.Range, &rangeBool); err == nil {
+			c.Requests.Range = rangeBool
+		} else {
+			var rangeStruct struct{}
+			if err := json.Unmarshal(intermediate.Requests.Range, &rangeStruct); err == nil {
+				c.Requests.Range = rangeStruct
+			} else {
+				return err
+			}
+		}
+	}
+	err := c.unmarshalSemanticTokensRequestsRange(intermediate)
+	if err != nil {
+		return err
+	}
+
+	err = c.unmarshalSemanticTokensRequestsFull(intermediate)
+	return err
+}
+
+func (c *SemanticTokensClientCapabilities) unmarshalSemanticTokensRequestsRange(
+	intermediate semanticTokensClientCapabilitiesIntermediate,
+) error {
+	if intermediate.Requests.Range != nil {
+		var rangeBool bool
+		if err := json.Unmarshal(intermediate.Requests.Range, &rangeBool); err == nil {
+			c.Requests.Range = rangeBool
+		} else {
+			var rangeStruct struct{}
+			if err := json.Unmarshal(intermediate.Requests.Range, &rangeStruct); err == nil {
+				c.Requests.Range = rangeStruct
+			} else {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *SemanticTokensClientCapabilities) unmarshalSemanticTokensRequestsFull(
+	intermediate semanticTokensClientCapabilitiesIntermediate,
+) error {
+	if intermediate.Requests.Full != nil {
+		var fullBool bool
+		if err := json.Unmarshal(intermediate.Requests.Full, &fullBool); err == nil {
+			c.Requests.Full = fullBool
+		} else {
+			var fullStruct SemanticDelta
+			if err := json.Unmarshal(intermediate.Requests.Full, &fullStruct); err == nil {
+				c.Requests.Full = fullStruct
+			} else {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// TokenFormat represents additional token format capabilities
+// to allow future extension of the format.
+type TokenFormat = string
+
+const (
+	// TokenFormatRelative represents a relative token format.
+	TokenFormatRelative TokenFormat = "relative"
+)
+
+// SemanticTokensRequests describes requests that a client
+// can send to a server for semantic tokens.
+type SemanticTokensRequests struct {
+	// The client will send the `textDocument/semanticTokens/range` request
+	// if the server provides a corresponding handler.
+	//
+	// boolean | struct{} | nil
+	Range any `json:"range,omitempty"`
+
+	// The client will send the `textDocument/semanticTokens/full` request
+	// if the server provides a corresponding handler.
+	//
+	// boolean | SemanticDelta | nil
+	Full any `json:"full,omitempty"`
+}
+
+// MonikerClientCapabilities describes the capabilities of a client
+// for moniker requests.
+type MonikerClientCapabilities struct {
+	// Whether implementation supports dynamic registration. If this is set to
+	// `true` the client supports the new `(TextDocumentRegistrationOptions &
+	// StaticRegistrationOptions)` return value for the corresponding server
+	// capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// InlayHintClientCapabilities describes the capabilities of a client
+// for inlay hint requests.
+type InlayHintClientCapabilities struct {
+	// Whether inlay hints support dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// Indicates which properties a client can resolve lazily on an inlay
+	// hint.
+	ResolveSupport *InlayHintResolveSupport `json:"resolveSupport,omitempty"`
+}
+
+// InlayHintResolveSupport describes the capabilities of a client
+// for resolving inlay hints lazily.
+type InlayHintResolveSupport struct {
+	// The properties that a client can resolve lazily.
+	Properties []string `json:"properties"`
+}
+
+// InlineValueClientCapabilities describes the capabilities of a client
+// for inline value requests.
+type InlineValueClientCapabilities struct {
+	// Whether implementation supports dynamic registration for inline
+	// value providers.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// TypeHierarchyClientCapabilities describes the capabilities of a client
+// for type hierarchy requests.
+type TypeHierarchyClientCapabilities struct {
+	// Whether implementation supports dynamic registration. If this is set to
+	// `true` the client supports the new `(TextDocumentRegistrationOptions &
+	// StaticRegistrationOptions)` return value for the corresponding server
+	// capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+}
+
+// CompletionOptions provides server capability options for completion requests.
+type CompletionOptions struct {
+	WorkDoneProgressOptions
+
+	// The additional characters, beyond the defaults provided by the client (typically
+	// [a-zA-Z]), that should automatically trigger a completion request. For example
+	// `.` in JavaScript represents the beginning of an object property or method and is
+	// thus a good candidate for triggering a completion request.
+	//
+	// Most tools trigger a completion request automatically without explicitly
+	// requesting it using a keyboard shortcut (e.g. Ctrl+Space). Typically they
+	// do so when the user starts to type an identifier. For example if the user
+	// types `c` in a JavaScript file code complete will automatically pop up
+	// present `console` besides others as a completion item. Characters that
+	// make up identifiers don't need to be listed here.
+	TriggerCharacters []string `json:"triggerCharacters,omitempty"`
+
+	// The list of all possible characters that commit a completion. This field
+	// can be used if clients don't support individual commit characters per
+	// completion item. See client capability
+	// `completion.completionItem.commitCharactersSupport`.
+	//
+	// If a server provides both `allCommitCharacters` and commit characters on
+	// an individual completion item the ones on the completion item win.
+	//
+	// @since 3.2.0
+	AllCommitCharacters []string `json:"allCommitCharacters,omitempty"`
+
+	// The server provides support to resolve additional
+	// information for a completion item.
+	ResolveProvider *bool `json:"resolveProvider,omitempty"`
+
+	// The server supports the following `CompletionItem` specific
+	// capabilities.
+	//
+	// @since 3.17.0
+	CompletionItem *CompletionOptionsItem `json:"completionItem,omitempty"`
+}
+
+// CompletionItemOptions provides server capability options for completion items.
+type CompletionOptionsItem struct {
+	// The server has support for completion item label
+	// details (see also `CompletionItemLabelDetails`) when receiving
+	// a completion item in a resolve call.
+	//
+	// @since 3.17.0
+	LabelDetailsSupport *bool `json:"labelDetailsSupport,omitempty"`
+}
+
+// SignatureHelpOptions provides server capability options for signature help requests.
+type SignatureHelpOptions struct {
+	WorkDoneProgressOptions
+
+	// The characters that trigger signature help
+	// automatically.
+	TriggerCharacters []string `json:"triggerCharacters,omitempty"`
+
+	// List of characters that re-trigger signature help.
+	//
+	// These trigger characters are only active when signature help is already
+	// showing. All trigger characters are also counted as re-trigger
+	// characters.
+	//
+	// @since 3.15.0
+	RetriggerCharacters []string `json:"retriggerCharacters,omitempty"`
+}
 
 // CodeLensOptions provides server capability options for code lens requests.
 type CodeLensOptions struct {

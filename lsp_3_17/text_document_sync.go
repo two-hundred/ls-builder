@@ -2,7 +2,23 @@ package lsp
 
 import "encoding/json"
 
-type TextDocumentSyncClientCapabilities struct{}
+// TextDocumentSyncClientCapabilities represents the client capabilities
+// specific to text document synchronisation.
+type TextDocumentSyncClientCapabilities struct {
+	// Whether text document synchronization supports dynamic registration.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// The client supports sending will save notifications.
+	WillSave *bool `json:"willSave,omitempty"`
+
+	// The client supports sending a will save request and
+	// waits for a response providing text edits which will
+	// be applied to the document before it is saved.
+	WillSaveWaitUntil *bool `json:"willSaveWaitUntil,omitempty"`
+
+	// The client supports did save notifications.
+	DidSave *bool `json:"didSave,omitempty"`
+}
 
 func unmarshalTextDocumentSyncServerCapabilities(
 	serverCapabilities *ServerCapabilities,

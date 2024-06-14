@@ -4,7 +4,20 @@ import (
 	"encoding/json"
 )
 
-type NotebookDocumentSyncClientCapabilities struct{}
+// NotebookDocumentSyncClientCapabilities represents the client capabilities
+// specific to notebook document synchronisation.
+//
+// @since 3.17.0
+type NotebookDocumentSyncClientCapabilities struct {
+	// Whether implementation supports dynamic registration. If this is
+	// set to `true` the client supports the new
+	// `(NotebookDocumentSyncRegistrationOptions & NotebookDocumentSyncOptions)`
+	// return value for the corresponding server capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+
+	// The client supports sending execution summary data per cell.
+	ExecutionSummarySupport *bool `json:"executionSummarySupport,omitempty"`
+}
 
 func unmarshalNotebookDocumentSyncServerCapabilities(
 	serverCapabilities *ServerCapabilities,

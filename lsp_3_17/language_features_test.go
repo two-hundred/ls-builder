@@ -1272,6 +1272,71 @@ func (s *LanguageFeaturesTestSuite) Test_unmarshal_workspace_symbol_provider_cap
 	testServerCapabilities(&s.Suite, tests)
 }
 
+func (s *LanguageFeaturesTestSuite) Test_unmarshal_semantic_tokens_client_capabilities() {
+	dynamicRegistration := true
+	delta := true
+	tests := []clientCapabilityFixture{
+		{
+			name: "unmarshals semantic tokens client capabilities (range as boolean)",
+			input: `
+			{
+				"textDocument": {
+					"semanticTokens": {
+						"dynamicRegistration": true,
+						"requests": {
+							"range": true,
+							"full": {
+								"delta": true
+							}
+						}
+					}
+				}
+			}`,
+			expected: &ClientCapabilities{
+				TextDocument: &TextDocumentClientCapabilities{
+					SemanticTokens: &SemanticTokensClientCapabilities{
+						DynamicRegistration: &dynamicRegistration,
+						Requests: SemanticTokensRequests{
+							Range: true,
+							Full: SemanticDelta{
+								Delta: &delta,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "unmarshals semantic tokens client capabilities (range as struct)",
+			input: `
+			{
+				"textDocument": {
+					"semanticTokens": {
+						"dynamicRegistration": true,
+						"requests": {
+							"range": {},
+							"full": false
+						}
+					}
+				}
+			}`,
+			expected: &ClientCapabilities{
+				TextDocument: &TextDocumentClientCapabilities{
+					SemanticTokens: &SemanticTokensClientCapabilities{
+						DynamicRegistration: &dynamicRegistration,
+						Requests: SemanticTokensRequests{
+							Range: struct{}{},
+							Full:  false,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testClientCapabilities(&s.Suite, tests)
+}
+
 func TestLanguageFeaturesTestSuite(t *testing.T) {
 	suite.Run(t, new(LanguageFeaturesTestSuite))
 }

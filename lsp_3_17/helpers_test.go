@@ -22,3 +22,20 @@ func testServerCapabilities(s *suite.Suite, tests []serverCapabilityFixture) {
 		})
 	}
 }
+
+type clientCapabilityFixture struct {
+	name     string
+	input    string
+	expected *ClientCapabilities
+}
+
+func testClientCapabilities(s *suite.Suite, tests []clientCapabilityFixture) {
+	for _, test := range tests {
+		s.Run(test.name, func() {
+			capabilities := &ClientCapabilities{}
+			err := json.Unmarshal([]byte(test.input), capabilities)
+			s.Require().NoError(err)
+			s.Require().Equal(test.expected, capabilities)
+		})
+	}
+}
