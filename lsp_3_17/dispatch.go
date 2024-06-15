@@ -21,3 +21,13 @@ func NewDispatcher(ctx *common.LSPContext) *Dispatcher {
 func (d *Dispatcher) Context() *common.LSPContext {
 	return d.ctx
 }
+
+// Initialized notifies the client that the server has been initialized.
+func (d *Dispatcher) Initialized() error {
+	return d.ctx.Notify(MethodInitialized, InitializedParams{})
+}
+
+// RegisterCapability registers a new capability with the client.
+func (d *Dispatcher) RegisterCapability(params RegistrationParams) error {
+	return d.ctx.Call(ClientRegisterCapability, params, nil)
+}
