@@ -321,6 +321,52 @@ func (s *HandlerTestSuite) Test_calls_exit_request_handler() {
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_text_document_did_open_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DidOpenTextDocumentParams, 1)
+	serverHandler := NewHandler(
+		WithTextDocumentDidOpenHandler(
+			func(ctx *common.LSPContext, params *DidOpenTextDocumentParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	textDocumentDidOpenParams := DidOpenTextDocumentParams{
+		TextDocument: TextDocumentItem{
+			URI:        "file:///test.txt",
+			LanguageID: "plaintext",
+			Text:       "test text file contents",
+			Version:    1,
+		},
+	}
+
+	err = clientLSPContext.Notify(MethodTextDocumentDidOpen, textDocumentDidOpenParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(textDocumentDidOpenParams, *receivedParams)
+	}
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

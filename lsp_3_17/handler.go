@@ -28,7 +28,7 @@ type Handler struct {
 	setTrace SetTraceHandlerFunc
 
 	// Text Document Synchronization
-	// textDocumentDidOpen TextDocumentDidOpenHandlerFunc
+	textDocumentDidOpen TextDocumentDidOpenHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -88,6 +88,14 @@ func WithShutdownHandler(handler ShutdownHandlerFunc) HandlerOption {
 func WithExitHandler(handler ExitHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetExitHandler(handler)
+	}
+}
+
+// WithTextDocumentDidOpenHandler sets the handler
+// for the `textDocument/didOpen` notification.
+func WithTextDocumentDidOpenHandler(handler TextDocumentDidOpenHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetTextDocumentDidOpenHandler(handler)
 	}
 }
 
@@ -157,6 +165,15 @@ func (h *Handler) SetExitHandler(handler ExitHandlerFunc) {
 	defer h.mu.Unlock()
 	h.exit = handler
 	h.messageHandlers[MethodExit] = createExitHandler(h)
+}
+
+// SetTextDocumentDidOpenHandler sets the handler
+// for the `textDocument/didOpen` notification.
+func (h *Handler) SetTextDocumentDidOpenHandler(handler TextDocumentDidOpenHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.textDocumentDidOpen = handler
+	h.messageHandlers[MethodTextDocumentDidOpen] = createSetTextDocumentDidOpenHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -308,6 +325,24 @@ func createExitHandler(root *Handler) common.Handler {
 				validMethod = true
 				validParams = true
 				err = root.exit(ctx)
+			}
+			return
+		},
+	)
+}
+
+func createSetTextDocumentDidOpenHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.textDocumentDidOpen != nil {
+				validMethod = true
+				var params DidOpenTextDocumentParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.textDocumentDidOpen(ctx, &params)
+				}
 			}
 			return
 		},
