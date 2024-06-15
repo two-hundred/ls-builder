@@ -21,8 +21,8 @@ type Handler struct {
 	// Lifecycle Messages
 	initialize  InitializeHandlerFunc
 	initialized InitializedHandlerFunc
-	// shutdown    ShutdownHandlerFunc
-	// exit        ExitHandlerFunc
+	shutdown    ShutdownHandlerFunc
+	exit        ExitHandlerFunc
 
 	// Trace Messages
 	setTrace SetTraceHandlerFunc
@@ -77,6 +77,20 @@ func WithSetTraceHandler(handler SetTraceHandlerFunc) HandlerOption {
 	}
 }
 
+// WithShutdownHandler sets the handler for the `shutdown` request.
+func WithShutdownHandler(handler ShutdownHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetShutdownHandler(handler)
+	}
+}
+
+// WithExitHandler sets the handler for the `exit` notification.
+func WithExitHandler(handler ExitHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetExitHandler(handler)
+	}
+}
+
 // NewHandler creates a new instance of a handler, optionally,
 // with a provided set of method handlers.
 func NewHandler(opts ...HandlerOption) *Handler {
@@ -127,6 +141,22 @@ func (h *Handler) SetTraceHandler(handler SetTraceHandlerFunc) {
 	defer h.mu.Unlock()
 	h.setTrace = handler
 	h.messageHandlers[MethodSetTrace] = createSetTraceHandler(h)
+}
+
+// SetShutdownHandler sets the handler for the `shutdown` request.
+func (h *Handler) SetShutdownHandler(handler ShutdownHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.shutdown = handler
+	h.messageHandlers[MethodShutdown] = createShutdownHandler(h)
+}
+
+// SetExitHandler sets the handler for the `exit` notification.
+func (h *Handler) SetExitHandler(handler ExitHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.exit = handler
+	h.messageHandlers[MethodExit] = createExitHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -245,6 +275,39 @@ func createSetTraceHandler(root *Handler) common.Handler {
 					validParams = true
 					err = root.setTrace(ctx, &params)
 				}
+			}
+			return
+		},
+	)
+}
+
+func createShutdownHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			root.SetInitialized(false)
+			if root.shutdown != nil {
+				validMethod = true
+				validParams = true
+				err = root.shutdown(ctx)
+			}
+			return
+		},
+	)
+}
+
+func createExitHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			// Note that the server will close the
+			// connection after we handle it here.
+			if root.exit != nil {
+				validMethod = true
+				validParams = true
+				err = root.exit(ctx)
 			}
 			return
 		},

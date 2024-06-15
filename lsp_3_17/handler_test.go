@@ -244,6 +244,83 @@ func (s *HandlerTestSuite) Test_calls_set_trace_request_handler() {
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_shutdown_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan bool, 1)
+	serverHandler := NewHandler(
+		WithShutdownHandler(
+			func(ctx *common.LSPContext) error {
+				callChan <- true
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	err = clientLSPContext.Call(MethodShutdown, nil, nil)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedCall := <-callChan:
+		s.Require().True(receivedCall)
+	}
+
+	// Assert that the server is no longer initialised.
+	s.Require().False(serverHandler.IsInitialized())
+}
+
+func (s *HandlerTestSuite) Test_calls_exit_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan bool, 1)
+	serverHandler := NewHandler(
+		WithExitHandler(
+			func(ctx *common.LSPContext) error {
+				callChan <- true
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	err = clientLSPContext.Notify(MethodExit, nil)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedCall := <-callChan:
+		s.Require().True(receivedCall)
+	}
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
