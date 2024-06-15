@@ -14,30 +14,105 @@ type DispatchTestSuite struct {
 	suite.Suite
 }
 
-func (s *DispatchTestSuite) Test_server_sends_initialized_notification() {
+func (s *DispatchTestSuite) Test_server_sends_progress_notification() {
 	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
 	defer cancel()
 
 	serverHandler := newTestServerHandler()
 	container := createTestConnectionsContainer(serverHandler)
 
-	lspCtx := newTestLSPContext(ctx, container.serverConn)
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
 	dispatcher := NewDispatcher(lspCtx)
-	err := dispatcher.Initialized()
+
+	progressToken := "progress-test-token"
+	progressParams := ProgressParams{
+		Token: &IntOrString{StrVal: &progressToken},
+	}
+
+	err := dispatcher.Progress(progressParams)
 	s.Require().NoError(err)
 
-	// Wait some time for the client to receive the message as JSON RPC
-	// notifications do not wait for a response.
-	time.Sleep(50 * time.Millisecond)
+	// Let some time pass as this is a notification,
+	// which by definition in LSP and JSON-RPC is fire-and-forget
+	// so we can't know at this point if the client has received the message.
+	time.Sleep(10 * time.Millisecond)
 
 	// Acquire a lock on the received message list shared between goroutines.
 	container.mu.Lock()
 	defer container.mu.Unlock()
-	// Verify that the client received the initialized notification.
+	// Verify that the client received the progress message.
 	s.Require().Len(container.clientReceivedMessages, 1)
-	var message InitializedParams
+	var message ProgressParams
 	err = json.Unmarshal(*container.clientReceivedMessages[0], &message)
 	s.Require().NoError(err)
+	s.Require().Equal(progressParams, message)
+}
+
+func (s *DispatchTestSuite) Test_server_sends_cancel_request_notification() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	requestID := "test-request-id"
+	cancelParams := CancelParams{
+		ID: &IntOrString{StrVal: &requestID},
+	}
+
+	err := dispatcher.CancelRequest(cancelParams)
+	s.Require().NoError(err)
+
+	// Let some time pass as this is a notification,
+	// which by definition in LSP and JSON-RPC is fire-and-forget
+	// so we can't know at this point if the client has received the message.
+	time.Sleep(10 * time.Millisecond)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+	// Verify that the client received the cancel request message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+	var message CancelParams
+	err = json.Unmarshal(*container.clientReceivedMessages[0], &message)
+	s.Require().NoError(err)
+	s.Require().Equal(cancelParams, message)
+}
+
+func (s *DispatchTestSuite) Test_server_sends_log_trace_notification() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	logTraceParams := LogTraceParams{
+		Message: "Something interesting happened",
+	}
+
+	err := dispatcher.LogTrace(logTraceParams)
+	s.Require().NoError(err)
+
+	// Let some time pass as this is a notification,
+	// which by definition in LSP and JSON-RPC is fire-and-forget
+	// so we can't know at this point if the client has received the message.
+	time.Sleep(10 * time.Millisecond)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+	// Verify that the client received the cancel request message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+	var message LogTraceParams
+	err = json.Unmarshal(*container.clientReceivedMessages[0], &message)
+	s.Require().NoError(err)
+	s.Require().Equal(logTraceParams, message)
 }
 
 func (s *DispatchTestSuite) Test_server_sends_register_capability_message() {
@@ -47,7 +122,7 @@ func (s *DispatchTestSuite) Test_server_sends_register_capability_message() {
 	serverHandler := newTestServerHandler()
 	container := createTestConnectionsContainer(serverHandler)
 
-	lspCtx := newTestLSPContext(ctx, container.serverConn)
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
 	dispatcher := NewDispatcher(lspCtx)
 
 	registerCapabilityParams := RegistrationParams{
@@ -78,6 +153,38 @@ func (s *DispatchTestSuite) Test_server_sends_register_capability_message() {
 	err = json.Unmarshal(*container.clientReceivedMessages[0], &message)
 	s.Require().NoError(err)
 	s.Require().Equal(registerCapabilityParams, message)
+}
+
+func (s *DispatchTestSuite) Test_server_sends_deregister_capability_message() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	deregisterCapabilityParams := UnregistrationParams{
+		Unregistrations: []Unregistration{
+			{
+				ID:     "1",
+				Method: "textDocument/didOpen",
+			},
+		},
+	}
+	err := dispatcher.UnregisterCapability(deregisterCapabilityParams)
+	s.Require().NoError(err)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+	// Verify that the client received the de-register capability message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+	var message UnregistrationParams
+	err = json.Unmarshal(*container.clientReceivedMessages[0], &message)
+	s.Require().NoError(err)
+	s.Require().Equal(deregisterCapabilityParams, message)
 }
 
 func TestDispatchTestSuite(t *testing.T) {

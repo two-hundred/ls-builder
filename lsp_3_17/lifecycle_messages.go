@@ -12,9 +12,9 @@ import (
 // as defined in the language server protocol.
 const MethodInitialize = Method("initialize")
 
-// InitializeFunc is the function signature for the initialize request
+// InitializeHandlerFunc is the function signature for the initialize request
 // handler that can be registered for a language server.
-type InitializeFunc func(ctx common.LSPContext, params *InitializeParams) (any, error)
+type InitializeHandlerFunc func(ctx common.LSPContext, params *InitializeParams) (any, error)
 
 // InitializeParams contains the initialize request parameters.
 type InitializeParams struct {
@@ -757,49 +757,13 @@ func (s *ServerCapabilities) UnmarshalJSON(data []byte) error {
 // as defined in the language server protocol.
 const MethodInitialized = Method("initialized")
 
-// InitializedFunc is the function signature for the initialized notification
+// InitializedHandlerFunc is the function signature for the initialized notification
 // handler that can be registered for a language server.
-type InitializedFunc func(ctx common.LSPContext, params *InitializedParams) error
+type InitializedHandlerFunc func(ctx common.LSPContext, params *InitializedParams) error
 
 // InitializedParams contains the initialized notification parameters.
 // With this version of the protocol, this is an empty struct.
 type InitializedParams struct{}
-
-// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#setTrace
-
-// MethodSetTrace is the method name for the setTrace notification
-// as defined in the language server protocol.
-const MethodSetTrace = Method("$/setTrace")
-
-// SetTraceFunc is the function signature for the setTrace notification
-// handler that can be registered for a language server.
-type SetTraceFunc func(ctx common.LSPContext, params *SetTraceParams) error
-
-// SetTraceParams contains the setTrace notification parameters.
-type SetTraceParams struct {
-	// The new value that should be assigned to the trace setting.
-	Value TraceValue `json:"value"`
-}
-
-// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#logTrace
-
-// MethodLogTrace is the method name for the logTrace notification
-// as defined in the language server protocol.
-const MethodLogTrace = Method("$/logTrace")
-
-// LogTraceFunc is the function signature for the logTrace notification
-// handler that can be registered for a language server.
-type LogTraceFunc func(ctx common.LSPContext, params *LogTraceParams) error
-
-// LogTraceParams contains the logTrace notification parameters.
-type LogTraceParams struct {
-	// The message to be logged.
-	Message string `json:"message"`
-
-	// Additional information that can be computed if the `trace` configuration
-	// is set to `verbose`.
-	Verbose *string `json:"verbose,omitempty"`
-}
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#shutdown
 
@@ -807,9 +771,9 @@ type LogTraceParams struct {
 // as defined in the language server protocol.
 const MethodShutdown = Method("shutdown")
 
-// ShutdownFunc is the function signature for the shutdown request
+// ShutdownHandlerFunc is the function signature for the shutdown request
 // handler that can be registered for a language server.
-type ShutdownFunc func(ctx common.LSPContext) error
+type ShutdownHandlerFunc func(ctx common.LSPContext) error
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#exit
 
@@ -817,6 +781,6 @@ type ShutdownFunc func(ctx common.LSPContext) error
 // as defined in the language server protocol.
 const MethodExit = Method("exit")
 
-// ExitFunc is the function signature for the exit notification
+// ExitHandlerFunc is the function signature for the exit notification
 // handler that can be registered for a language server.
-type ExitFunc func(ctx common.LSPContext) error
+type ExitHandlerFunc func(ctx common.LSPContext) error

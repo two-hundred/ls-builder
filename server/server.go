@@ -93,7 +93,7 @@ func (s *Server) Serve(optConn *jsonrpc2.Conn, connLogger *zap.Logger) {
 func (s *Server) ServeWebSocket(conn *websocket.Conn, logger *zap.Logger) {
 	s.logger.Info("new web socket connection")
 	<-NewWebSocketConnection(
-		s.newHandler(),
+		s.NewHandler(),
 		conn,
 		WithTimeout(s.timeout),
 		WithReadTimeout(s.readTimeout),

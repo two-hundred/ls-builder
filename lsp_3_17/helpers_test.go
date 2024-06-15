@@ -8,7 +8,6 @@ import (
 
 	"github.com/sourcegraph/jsonrpc2"
 	"github.com/stretchr/testify/suite"
-	"github.com/two-hundred/ls-builder/common"
 	"github.com/two-hundred/ls-builder/server"
 )
 
@@ -111,19 +110,6 @@ func createTestConnectionsContainer(serverHandler jsonrpc2.Handler) *testConnect
 	container.serverConn = serverConn
 	container.clientConn = clientConn
 	return container
-}
-
-func newTestLSPContext(ctx context.Context, conn *jsonrpc2.Conn) *common.LSPContext {
-	return &common.LSPContext{
-		Method: "test",
-		Params: nil,
-		Notify: func(method string, params any) error {
-			return conn.Notify(ctx, method, params)
-		},
-		Call: func(method string, params any, result any) error {
-			return conn.Call(ctx, method, params, result)
-		},
-	}
 }
 
 func newTestServerHandler() jsonrpc2.Handler {

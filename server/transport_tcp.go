@@ -25,6 +25,6 @@ func RunTCP(address string, server *Server, logger *zap.Logger) error {
 		connectionCount += 1
 		connectionLogger := logger.With(zap.Uint64("id", connectionCount))
 
-		go server.Serve(NewStreamConnection(server.newHandler(), connection), connectionLogger)
+		go server.Serve(NewStreamConnection(server.NewHandler(), connection), connectionLogger)
 	}
 }

@@ -1,6 +1,10 @@
 package lsp
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/two-hundred/ls-builder/common"
+)
 
 // TextDocumentSyncClientCapabilities represents the client capabilities
 // specific to text document synchronisation.
@@ -90,4 +94,18 @@ func unmarshalServerCapabilityTextDocumentSync(
 	}
 
 	return nil
+}
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didOpen
+
+const MethodTextDocumentDidOpen = Method("textDocument/didOpen")
+
+// TextDocumentDidOpenHandlerFunc is the function signature for the handler
+// of the textDocument/didOpen notification.
+type TextDocumentDidOpenHandlerFunc func(ctx *common.LSPContext, params *DidOpenTextDocumentParams) error
+
+// DidOpenTextDocumentParams contains the parameters of the textDocument/didOpen notification.
+type DidOpenTextDocumentParams struct {
+	// The document that was opened.
+	TextDocument TextDocumentItem `json:"textDocument"`
 }

@@ -134,12 +134,12 @@ const MethodCancelRequest = Method("$/cancelRequest")
 // CancelParams contains the cancel request parameters.
 type CancelParams struct {
 	// ID of the request to cancel.
-	ID IntOrString `json:"id"`
+	ID *IntOrString `json:"id"`
 }
 
-// CancelRequestFunc is the function signature for the cancelRequest request
+// CancelRequestHandlerFunc is the function signature for the cancelRequest request
 // that can be registered for a language server.
-type CancelRequestFunc func(ctx *common.LSPContext, params *CancelParams) error
+type CancelRequestHandlerFunc func(ctx *common.LSPContext, params *CancelParams) error
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#progress
 
@@ -148,7 +148,7 @@ const MethodProgress = Method("$/progress")
 // ProgressParams contains the progress notification parameters.
 type ProgressParams struct {
 	// The progress token provided by the client or server.
-	Token ProgressToken `json:"token"`
+	Token *ProgressToken `json:"token"`
 	// The progress data.
 	Value LSPAny `json:"value"`
 }
@@ -157,3 +157,7 @@ type ProgressParams struct {
 // which is used to report progress out of band and notifications.
 // The token is not the same as the request ID.
 type ProgressToken = IntOrString
+
+// ProgressHandlerFunc is the function signature for handling client
+// progress notifications that can be registered for a language server.
+type ProgressHandlerFunc func(ctx *common.LSPContext, params *ProgressParams) error

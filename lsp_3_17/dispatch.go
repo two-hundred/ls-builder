@@ -22,12 +22,31 @@ func (d *Dispatcher) Context() *common.LSPContext {
 	return d.ctx
 }
 
-// Initialized notifies the client that the server has been initialized.
-func (d *Dispatcher) Initialized() error {
-	return d.ctx.Notify(MethodInitialized, InitializedParams{})
+// Progress notifies the client of progress for a specific task.
+func (d *Dispatcher) Progress(params ProgressParams) error {
+	return d.ctx.Notify(MethodProgress, params)
+}
+
+// CancelRequest cancels a request with the client.
+func (d *Dispatcher) CancelRequest(params CancelParams) error {
+	return d.ctx.Notify(MethodCancelRequest, params)
 }
 
 // RegisterCapability registers a new capability with the client.
 func (d *Dispatcher) RegisterCapability(params RegistrationParams) error {
 	return d.ctx.Call(ClientRegisterCapability, params, nil)
+}
+
+// UnregisterCapability de-registers a capability with the client.
+func (d *Dispatcher) UnregisterCapability(params UnregistrationParams) error {
+	return d.ctx.Call(ClientUnregisterCapability, params, nil)
+}
+
+// LogTrace sends a notification to log the trace of the server’s execution.
+// The amount of content of these notifications depends on the current
+// `trace` configuration. If `trace`, the server should not send any `logTrace`
+// notification. If `trace` is `messages`, the server should not add the `verbose`
+// field in the `LogTraceParams`.
+func (d *Dispatcher) LogTrace(params LogTraceParams) error {
+	return d.ctx.Notify(MethodLogTrace, params)
 }
