@@ -19,7 +19,7 @@ type Handler struct {
 	progress      ProgressHandlerFunc
 
 	// Lifecycle Messages
-	// initialize  InitializeHandlerFunc
+	initialize InitializeHandlerFunc
 	// initialized InitializedHandlerFunc
 	// shutdown    ShutdownHandlerFunc
 	// exit        ExitHandlerFunc
@@ -56,6 +56,13 @@ func WithProgressHandler(handler ProgressHandlerFunc) HandlerOption {
 	}
 }
 
+// WithInitializeHandler sets the handler for the `initialize` request.
+func WithInitializeHandler(handler InitializeHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetInitializeHandler(handler)
+	}
+}
+
 // NewHandler creates a new instance of a handler, optionally,
 // with a provided set of method handlers.
 func NewHandler(opts ...HandlerOption) *Handler {
@@ -82,6 +89,14 @@ func (h *Handler) SetProgressHandler(handler ProgressHandlerFunc) {
 	defer h.mu.Unlock()
 	h.progress = handler
 	h.messageHandlers[MethodProgress] = createProgressRequestHandler(h)
+}
+
+// SetInitializeHandler sets the handler for the `initialize` request.
+func (h *Handler) SetInitializeHandler(handler InitializeHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.initialize = handler
+	h.messageHandlers[MethodInitialize] = createInitializeHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -143,6 +158,26 @@ func createProgressRequestHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.progress(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createInitializeHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.initialize != nil {
+				validMethod = true
+				var params InitializeParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					if r, err = root.initialize(ctx, &params); err == nil {
+						root.SetInitialized(true)
+					}
 				}
 			}
 			return

@@ -98,6 +98,74 @@ func (s *HandlerTestSuite) Test_calls_progress_request_handler() {
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_initialize_request_handler_and_sets_initialized_state() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	version := "0.0.1"
+	openClose := true
+	initializeResult := InitializeResult{
+		Capabilities: ServerCapabilities{
+			PositionEncoding: PositionEncodingKindUTF8,
+			TextDocumentSync: TextDocumentSyncOptions{
+				OpenClose: &openClose,
+				Change:    &TextDocumentSyncKindIncremental,
+			},
+		},
+		ServerInfo: &InitializeResultServerInfo{
+			Name:    "test-language-server",
+			Version: &version,
+		},
+	}
+
+	serverHandler := NewHandler(
+		WithInitializeHandler(
+			func(ctx *common.LSPContext, params *InitializeParams) (any, error) {
+				return initializeResult, nil
+			},
+		),
+	)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	// Assert before the LSP initialisation process.
+	s.Require().False(serverHandler.IsInitialized())
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	willSave := true
+	didSave := true
+	initializeParams := InitializeParams{
+		ClientInfo: &InitializeClientInfo{
+			Name:    "test-client",
+			Version: "0.1.0",
+		},
+		Capabilities: ClientCapabilities{
+			TextDocument: &TextDocumentClientCapabilities{
+				Synchronization: &TextDocumentSyncClientCapabilities{
+					WillSave: &willSave,
+					DidSave:  &didSave,
+				},
+			},
+			General: &GeneralClientCapabilities{
+				PositionEncodings: []PositionEncodingKind{PositionEncodingKindUTF8},
+			},
+		},
+	}
+
+	returnedResult := InitializeResult{}
+	err = clientLSPContext.Call(MethodInitialize, initializeParams, &returnedResult)
+	s.Require().NoError(err)
+	s.Require().Equal(initializeResult, returnedResult)
+	s.Require().True(serverHandler.IsInitialized())
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

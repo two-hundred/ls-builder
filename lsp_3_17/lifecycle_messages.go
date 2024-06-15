@@ -14,7 +14,7 @@ const MethodInitialize = Method("initialize")
 
 // InitializeHandlerFunc is the function signature for the initialize request
 // handler that can be registered for a language server.
-type InitializeHandlerFunc func(ctx common.LSPContext, params *InitializeParams) (any, error)
+type InitializeHandlerFunc func(ctx *common.LSPContext, params *InitializeParams) (any, error)
 
 // InitializeParams contains the initialize request parameters.
 type InitializeParams struct {
@@ -647,7 +647,7 @@ type ServerCapabilities struct {
 // Intermediate struct to unmarshal union types in server capabilities
 // at runtime to ensure the structure is as expected.
 type serverCapabilitiesIntermediate struct {
-	PsotionEncoding                  PositionEncodingKind             `json:"positionEncoding,omitempty"`
+	PositionEncoding                 PositionEncodingKind             `json:"positionEncoding,omitempty"`
 	TextDocumentSync                 json.RawMessage                  `json:"textDocumentSync,omitempty"`
 	NotebookDocumentSync             json.RawMessage                  `json:"notebookDocumentSync,omitempty"`
 	CompletionProvider               *CompletionOptions               `json:"completionProvider,omitempty"`
@@ -733,6 +733,16 @@ func (s *ServerCapabilities) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	s.PositionEncoding = intermediate.PositionEncoding
+	s.CompletionProvider = intermediate.CompletionProvider
+	s.SignatureHelpProvider = intermediate.SignatureHelpProvider
+	s.CodeLensProvider = intermediate.CodeLensProvider
+	s.DocumentLinkProvider = intermediate.DocumentLinkProvider
+	s.DocumentOnTypeFormattingProvider = intermediate.DocumentOnTypeFormattingProvider
+	s.ExecuteCommandProvider = intermediate.ExecuteCommandProvider
+	s.Workspace = intermediate.Workspace
+	s.Experimental = intermediate.Experimental
+
 	err = unmarshalTextDocumentSyncServerCapabilities(s, &intermediate)
 	if err != nil {
 		return err
@@ -759,7 +769,7 @@ const MethodInitialized = Method("initialized")
 
 // InitializedHandlerFunc is the function signature for the initialized notification
 // handler that can be registered for a language server.
-type InitializedHandlerFunc func(ctx common.LSPContext, params *InitializedParams) error
+type InitializedHandlerFunc func(ctx *common.LSPContext, params *InitializedParams) error
 
 // InitializedParams contains the initialized notification parameters.
 // With this version of the protocol, this is an empty struct.
@@ -773,7 +783,7 @@ const MethodShutdown = Method("shutdown")
 
 // ShutdownHandlerFunc is the function signature for the shutdown request
 // handler that can be registered for a language server.
-type ShutdownHandlerFunc func(ctx common.LSPContext) error
+type ShutdownHandlerFunc func(ctx *common.LSPContext) error
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#exit
 
@@ -783,4 +793,4 @@ const MethodExit = Method("exit")
 
 // ExitHandlerFunc is the function signature for the exit notification
 // handler that can be registered for a language server.
-type ExitHandlerFunc func(ctx common.LSPContext) error
+type ExitHandlerFunc func(ctx *common.LSPContext) error
