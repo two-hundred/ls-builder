@@ -10,7 +10,7 @@ const MethodSetTrace = Method("$/setTrace")
 
 // SetTraceHandlerFunc is the function signature for the setTrace notification
 // handler that can be registered for a language server.
-type SetTraceHandlerFunc func(ctx common.LSPContext, params *SetTraceParams) error
+type SetTraceHandlerFunc func(ctx *common.LSPContext, params *SetTraceParams) error
 
 // SetTraceParams contains the setTrace notification parameters.
 type SetTraceParams struct {

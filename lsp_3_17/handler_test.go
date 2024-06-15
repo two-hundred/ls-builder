@@ -166,6 +166,84 @@ func (s *HandlerTestSuite) Test_calls_initialize_request_handler_and_sets_initia
 	s.Require().True(serverHandler.IsInitialized())
 }
 
+func (s *HandlerTestSuite) Test_calls_initialized_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *InitializedParams, 1)
+	serverHandler := NewHandler(
+		WithInitializedHandler(
+			func(ctx *common.LSPContext, params *InitializedParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	initializedParams := InitializedParams{}
+	err = clientLSPContext.Notify(MethodInitialized, initializedParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(initializedParams, *receivedParams)
+	}
+}
+
+func (s *HandlerTestSuite) Test_calls_set_trace_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *SetTraceParams, 1)
+	serverHandler := NewHandler(
+		WithSetTraceHandler(
+			func(ctx *common.LSPContext, params *SetTraceParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	setTraceParams := SetTraceParams{
+		Value: TraceValueVerbose,
+	}
+	err = clientLSPContext.Notify(MethodSetTrace, setTraceParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(setTraceParams, *receivedParams)
+	}
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

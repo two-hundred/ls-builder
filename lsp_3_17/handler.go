@@ -19,13 +19,13 @@ type Handler struct {
 	progress      ProgressHandlerFunc
 
 	// Lifecycle Messages
-	initialize InitializeHandlerFunc
-	// initialized InitializedHandlerFunc
+	initialize  InitializeHandlerFunc
+	initialized InitializedHandlerFunc
 	// shutdown    ShutdownHandlerFunc
 	// exit        ExitHandlerFunc
 
 	// Trace Messages
-	// setTrace SetTraceHandlerFunc
+	setTrace SetTraceHandlerFunc
 
 	// Text Document Synchronization
 	// textDocumentDidOpen TextDocumentDidOpenHandlerFunc
@@ -63,6 +63,20 @@ func WithInitializeHandler(handler InitializeHandlerFunc) HandlerOption {
 	}
 }
 
+// WithInitializedHandler sets the handler for the `initialized` notification.
+func WithInitializedHandler(handler InitializedHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetInitializedHandler(handler)
+	}
+}
+
+// WithSetTraceHandler sets the handler for the `$/setTrace` notification.
+func WithSetTraceHandler(handler SetTraceHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetTraceHandler(handler)
+	}
+}
+
 // NewHandler creates a new instance of a handler, optionally,
 // with a provided set of method handlers.
 func NewHandler(opts ...HandlerOption) *Handler {
@@ -97,6 +111,22 @@ func (h *Handler) SetInitializeHandler(handler InitializeHandlerFunc) {
 	defer h.mu.Unlock()
 	h.initialize = handler
 	h.messageHandlers[MethodInitialize] = createInitializeHandler(h)
+}
+
+// SetInitializedHandler sets the handler for the `initialized` notification.
+func (h *Handler) SetInitializedHandler(handler InitializedHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.initialized = handler
+	h.messageHandlers[MethodInitialized] = createInitializedHandler(h)
+}
+
+// SetTraceHandler sets the handler for the `$/setTrace` notification.
+func (h *Handler) SetTraceHandler(handler SetTraceHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.setTrace = handler
+	h.messageHandlers[MethodSetTrace] = createSetTraceHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -178,6 +208,42 @@ func createInitializeHandler(root *Handler) common.Handler {
 					if r, err = root.initialize(ctx, &params); err == nil {
 						root.SetInitialized(true)
 					}
+				}
+			}
+			return
+		},
+	)
+}
+
+func createInitializedHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.initialized != nil {
+				validMethod = true
+				var params InitializedParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.initialized(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createSetTraceHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.setTrace != nil {
+				validMethod = true
+				var params SetTraceParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.setTrace(ctx, &params)
 				}
 			}
 			return
