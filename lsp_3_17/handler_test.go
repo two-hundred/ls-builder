@@ -602,6 +602,57 @@ func (s *HandlerTestSuite) Test_calls_text_document_did_close_notification_handl
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_notebook_document_did_open_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DidOpenNotebookDocumentParams, 1)
+	serverHandler := NewHandler(
+		WithNotebookDocumentDidOpenHandler(
+			func(ctx *common.LSPContext, params *DidOpenNotebookDocumentParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	notebookDocumentDidOpenParams := DidOpenNotebookDocumentParams{
+		Notebook: NotebookDocument{
+			URI: "file:///test.ipynb",
+		},
+		CellTextDocuments: []TextDocumentItem{
+			{
+				URI:        "file:///test.ipynb",
+				LanguageID: "python",
+				Version:    1,
+				Text:       "print('hello world')",
+			},
+		},
+	}
+
+	err = clientLSPContext.Notify(MethodNotebookDocumentDidOpen, notebookDocumentDidOpenParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(notebookDocumentDidOpenParams, *receivedParams)
+	}
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

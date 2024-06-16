@@ -2,6 +2,8 @@ package lsp
 
 import (
 	"encoding/json"
+
+	"github.com/two-hundred/ls-builder/common"
 )
 
 // NotebookDocumentSyncClientCapabilities represents the client capabilities
@@ -179,4 +181,96 @@ func unmarshalNotebookDocumentSyncOptions(
 	}
 
 	return nil
+}
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#notebookDocument_didOpen
+
+const MethodNotebookDocumentDidOpen = Method("notebookDocument/didOpen")
+
+// NotebookDocumentDidOpenHandlerFunc is the function signature for the notebookDocument/didOpen
+// notification handler that can be registered for a language server.
+type NotebookDocumentDidOpenHandlerFunc func(ctx *common.LSPContext, params *DidOpenNotebookDocumentParams) error
+
+// DidOpenNotebookDocumentParams contains the notebookDocument/didOpen notification parameters.
+//
+// @since 3.17.0
+type DidOpenNotebookDocumentParams struct {
+	// The document that was opened.
+	Notebook NotebookDocument `json:"notebook"`
+
+	// The text documents that represent the content
+	// of a notebook cell.
+	CellTextDocuments []TextDocumentItem `json:"cellTextDocuments"`
+}
+
+// NotebookDocument represents a notebook document.
+//
+// @since 3.17.0
+type NotebookDocument struct {
+	// The notebook document's URI.
+	URI URI `json:"uri"`
+
+	// The type of the notebook.
+	NotebookType string `json:"notebookType"`
+
+	// The version number of this document (it will strictly increase after each change,
+	// including undo/redo).
+	Version Integer `json:"version"`
+
+	// Additional metadata stored with the notebook document.
+	Metadata LSPObject `json:"metadata,omitempty"`
+
+	// The cells of a notebook.
+	Cells []NotebookCell `json:"cells"`
+}
+
+// NotebookCell represents a cell in a notebook.
+//
+// A cell's document URI must be unique across ALL notebook
+// cells and can therefore be used to uniquely identify a
+// notebook cell or the cell's text document.
+//
+// @since 3.17.0
+type NotebookCell struct {
+	// The cell's kind.
+	Kind NotebookCellKind `json:"kind"`
+
+	// The URI of the cell's text document content.
+	Document DocumentURI `json:"document"`
+
+	// Additional metadata stored with the notebook cell.
+	Metadata LSPObject `json:"metadata,omitempty"`
+
+	// Additional execution summary information if supported
+	// by the client.
+	ExecutionSummary *NotebookCellExecutionSummary `json:"executionSummary,omitempty"`
+}
+
+// NotebookCellKind denotes the kind of a notebook cell.
+//
+// @since 3.17.0
+type NotebookCellKind = Integer
+
+const (
+	// NotebookCellKindMarkup is for a markup-cell that is
+	// formatted source that is used to display text in instructions
+	// and guidance.
+	NotebookCellKindMarkup NotebookCellKind = 1
+
+	// NotebookCellKindCode is for a code-cell that is
+	// executable source code.
+	NotebookCellKindCode NotebookCellKind = 2
+)
+
+// NotebookCellExecutionSummary contains the summary of the
+// execution of a notebook cell.
+type NotebookCellExecutionSummary struct {
+	// A strict monotonically increasing value
+	// indicating the execution order of a cell
+	// inside a notebook.
+	ExecutionOrder UInteger `json:"executionOrder"`
+
+	// Whether the execution was successful or not
+	// if known by the client.
+	Success *bool `json:"success,omitempty"`
 }
