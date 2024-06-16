@@ -822,6 +822,79 @@ func (s *HandlerTestSuite) Test_calls_notebook_document_did_close_notification_h
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_goto_declaration_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	links := []LocationLink{
+		{
+			TargetURI: "file:///test.go",
+			OriginSelectionRange: &Range{
+				Start: Position{
+					Line:      1,
+					Character: 5,
+				},
+				End: Position{
+					Line:      1,
+					Character: 10,
+				},
+			},
+			TargetRange: Range{
+				Start: Position{
+					Line:      3,
+					Character: 2,
+				},
+				End: Position{
+					Line:      3,
+					Character: 14,
+				},
+			},
+			TargetSelectionRange: Range{
+				Start: Position{
+					Line:      3,
+					Character: 2,
+				},
+				End: Position{
+					Line:      3,
+					Character: 14,
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithGotoDeclarationHandler(
+			func(ctx *common.LSPContext, params *DeclarationParams) (any, error) {
+				return links, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	declarationParams := DeclarationParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test.txt",
+			},
+		},
+	}
+
+	returnedLinks := []LocationLink{}
+	err = clientLSPContext.Call(MethodGotoDeclaration, declarationParams, &returnedLinks)
+	s.Require().NoError(err)
+	s.Require().Equal(links, returnedLinks)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
