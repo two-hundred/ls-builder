@@ -274,3 +274,113 @@ type NotebookCellExecutionSummary struct {
 	// if known by the client.
 	Success *bool `json:"success,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#notebookDocument_didChange
+
+const MethodNotebookDocumentDidChange = Method("notebookDocument/didChange")
+
+// NotebookDocumentDidChangeHandlerFunc is the function signature for the notebookDocument/didChange
+// notification handler that can be registered for a language server.
+type NotebookDocumentDidChangeHandlerFunc func(ctx *common.LSPContext, params *DidChangeNotebookDocumentParams) error
+
+// DidChangeNotebookDocumentParams contains the parameters
+// sent in a change notebook document notification.
+//
+// @since 3.17.0
+type DidChangeNotebookDocumentParams struct {
+	// The notebook document that changed.
+	// The version number points to the version after
+	// all provided changes have been applied.
+	NotebookDocument VersionedNotebookDocumentIdentifier `json:"notebookDocument"`
+
+	// The actual changes to the notebook document.
+	//
+	// The change describes single state change to the notebook document.
+	// So it moves a notebook document, its cells and its cell text document
+	// contents from state S to S'.
+	//
+	// To mirror the content of a notebook using change events use the
+	// following approach:
+	// - start with the same initial content
+	// - apply the 'notebookDocument/didChange' notifications in the order
+	//   you receive them.
+	Change NotebookDocumentChangeEvent `json:"change"`
+}
+
+// VersionedNotebookDocumentIdentifier represents a versioned
+// notebook document identifier.
+//
+// @since 3.17.0
+type VersionedNotebookDocumentIdentifier struct {
+	// The version number of this notebook document.
+	Version Integer `json:"version"`
+
+	// The notebook document's URI.
+	URI URI `json:"uri"`
+}
+
+// NotebookDocumentChangeEvent represents a change event
+// for a notebook document.
+//
+// @since 3.17.0
+type NotebookDocumentChangeEvent struct {
+	// The changed metadata if any.
+	Metadata LSPObject `json:"metadata,omitempty"`
+
+	// Changes to cells.
+	Cells *NotebookCellChanges `json:"cells,omitempty"`
+}
+
+// NotebookCellChanges represents changes to notebook cells.
+//
+// @since 3.17.0
+type NotebookCellChanges struct {
+	// Changes to the cell structure to add or remove cells.
+	Structure *NotebookCellChangesStructure `json:"structure,omitempty"`
+
+	// Changes to notebook cells properties like its kind,
+	// execution summary or metadata.
+	Data []NotebookCell `json:"data,omitempty"`
+
+	// Changes to the text content of notebook cells.
+	TextContent []NotebookCellChangesTextContent `json:"textContent,omitempty"`
+}
+
+// NotebookCellChangesTextContent represents changes to the text content
+// of notebook cells.
+//
+// @since 3.17.0
+type NotebookCellChangesTextContent struct {
+	Document VersionedTextDocumentIdentifier  `json:"document"`
+	Changes  []TextDocumentContentChangeEvent `json:"changes"`
+}
+
+// NotebookCellChangesStructure represents the structure object of
+// a notebook cell changes.
+//
+// @since 3.17.0
+type NotebookCellChangesStructure struct {
+	// The change to the cell array.
+	Array NotebookCellArrayChange `json:"array"`
+
+	// Additional opened cell text documents.
+	DidOpen []TextDocumentItem `json:"didOpen,omitempty"`
+
+	// Additional closed cell text documents.
+	DidClose []TextDocumentIdentifier `json:"didClose,omitempty"`
+}
+
+// NotebookCellArrayChange represents a change describing how to move
+// a `NotebookCell` array from state S to S'.
+//
+// @since 3.17.0
+type NotebookCellArrayChange struct {
+	// The start offset of the cell that changed.
+	Start UInteger `json:"start"`
+
+	// The deleted cells.
+	DeleteCount UInteger `json:"deleteCount"`
+
+	// The new cells, if any.
+	Cells []NotebookCell `json:"cells,omitempty"`
+}

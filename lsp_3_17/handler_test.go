@@ -653,6 +653,84 @@ func (s *HandlerTestSuite) Test_calls_notebook_document_did_open_notification_ha
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_notebook_document_did_change_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DidChangeNotebookDocumentParams, 1)
+	serverHandler := NewHandler(
+		WithNotebookDocumentDidChangeHandler(
+			func(ctx *common.LSPContext, params *DidChangeNotebookDocumentParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	cellExecutionSuccess := true
+	notebookDocumentDidChangeParams := DidChangeNotebookDocumentParams{
+		NotebookDocument: VersionedNotebookDocumentIdentifier{
+			URI:     "file:///test.ipynb",
+			Version: 2,
+		},
+		Change: NotebookDocumentChangeEvent{
+			Cells: &NotebookCellChanges{
+				Structure: &NotebookCellChangesStructure{
+					Array: NotebookCellArrayChange{
+						Start:       3,
+						DeleteCount: 1,
+						Cells: []NotebookCell{
+							{
+								Kind:     NotebookCellKindMarkup,
+								Document: "file:///test.ipynb",
+								ExecutionSummary: &NotebookCellExecutionSummary{
+									ExecutionOrder: 4,
+									Success:        &cellExecutionSuccess,
+								},
+							},
+						},
+					},
+					DidOpen: []TextDocumentItem{
+						{
+							URI:        "file:///test.ipynb",
+							LanguageID: "python",
+							Version:    1,
+							Text:       "print('hello world')",
+						},
+					},
+					DidClose: []TextDocumentIdentifier{
+						{
+							URI: "file:///test.ipynb",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err = clientLSPContext.Notify(MethodNotebookDocumentDidChange, notebookDocumentDidChangeParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(notebookDocumentDidChangeParams, *receivedParams)
+	}
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

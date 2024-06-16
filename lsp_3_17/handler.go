@@ -37,7 +37,8 @@ type Handler struct {
 	textDocumentDidClose          TextDocumentDidCloseHandlerFunc
 
 	// Notebook Document Synchronisation
-	notebookDocumentDidOpen NotebookDocumentDidOpenHandlerFunc
+	notebookDocumentDidOpen   NotebookDocumentDidOpenHandlerFunc
+	notebookDocumentDidChange NotebookDocumentDidChangeHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -153,6 +154,14 @@ func WithTextDocumentDidCloseHandler(handler TextDocumentDidCloseHandlerFunc) Ha
 func WithNotebookDocumentDidOpenHandler(handler NotebookDocumentDidOpenHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetNotebookDocumentDidOpenHandler(handler)
+	}
+}
+
+// WithNotebookDocumentDidChangeHandler sets the handler
+// for the `notebookDocument/didChange` notification.
+func WithNotebookDocumentDidChangeHandler(handler NotebookDocumentDidChangeHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetNotebookDocumentDidChangeHandler(handler)
 	}
 }
 
@@ -285,6 +294,15 @@ func (h *Handler) SetNotebookDocumentDidOpenHandler(handler NotebookDocumentDidO
 	defer h.mu.Unlock()
 	h.notebookDocumentDidOpen = handler
 	h.messageHandlers[MethodNotebookDocumentDidOpen] = createNotebookDocumentDidOpenHandler(h)
+}
+
+// SetNotebookDocumentDidChangeHandler sets the handler
+// for the `notebookDocument/didChange` notification.
+func (h *Handler) SetNotebookDocumentDidChangeHandler(handler NotebookDocumentDidChangeHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.notebookDocumentDidChange = handler
+	h.messageHandlers[MethodNotebookDocumentDidChange] = createNotebookDocumentDidChangeHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -561,6 +579,24 @@ func createNotebookDocumentDidOpenHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.notebookDocumentDidOpen(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createNotebookDocumentDidChangeHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.notebookDocumentDidChange != nil {
+				validMethod = true
+				var params DidChangeNotebookDocumentParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.notebookDocumentDidChange(ctx, &params)
 				}
 			}
 			return
