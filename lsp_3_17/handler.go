@@ -44,6 +44,7 @@ type Handler struct {
 
 	// Language Features
 	gotoDeclaration GotoDeclarationHandlerFunc
+	gotoDefinition  GotoDefinitionHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -190,6 +191,13 @@ func WithNotebookDocumentDidCloseHandler(handler NotebookDocumentDidCloseHandler
 func WithGotoDeclarationHandler(handler GotoDeclarationHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetGotoDeclarationHandler(handler)
+	}
+}
+
+// WithGotoDefinitionHandler sets the handler for the `textDocument/definition` request.
+func WithGotoDefinitionHandler(handler GotoDefinitionHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetGotoDefinitionHandler(handler)
 	}
 }
 
@@ -357,6 +365,14 @@ func (h *Handler) SetGotoDeclarationHandler(handler GotoDeclarationHandlerFunc) 
 	defer h.mu.Unlock()
 	h.gotoDeclaration = handler
 	h.messageHandlers[MethodGotoDeclaration] = createGotoDeclarationHandler(h)
+}
+
+// SetGotoDefinitionHandler sets the handler for the `textDocument/definition` request.
+func (h *Handler) SetGotoDefinitionHandler(handler GotoDefinitionHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.gotoDefinition = handler
+	h.messageHandlers[MethodGotoDefinition] = createGotoDefinitionHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -705,6 +721,24 @@ func createGotoDeclarationHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.gotoDeclaration(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createGotoDefinitionHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.gotoDefinition != nil {
+				validMethod = true
+				var params DefinitionParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.gotoDefinition(ctx, &params)
 				}
 			}
 			return

@@ -18,3 +18,20 @@ type DeclarationParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition
+
+const MethodGotoDefinition = Method("textDocument/definition")
+
+// GoToDefinitionHandlerFunc is the function signature for the textDocument/definition
+// request handler that can be registered for a language server.
+//
+// Returns: Location | []Location | []LocationLink | nil
+type GotoDefinitionHandlerFunc func(ctx *common.LSPContext, params *DefinitionParams) (any, error)
+
+// DefinitionParams contains the textDocument/definition request parameters.
+type DefinitionParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+	PartialResultParams
+}
