@@ -43,8 +43,9 @@ type Handler struct {
 	notebookDocumentDidClose  NotebookDocumentDidCloseHandlerFunc
 
 	// Language Features
-	gotoDeclaration GotoDeclarationHandlerFunc
-	gotoDefinition  GotoDefinitionHandlerFunc
+	gotoDeclaration    GotoDeclarationHandlerFunc
+	gotoDefinition     GotoDefinitionHandlerFunc
+	gotoTypeDefinition GotoTypeDefinitionHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -198,6 +199,13 @@ func WithGotoDeclarationHandler(handler GotoDeclarationHandlerFunc) HandlerOptio
 func WithGotoDefinitionHandler(handler GotoDefinitionHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetGotoDefinitionHandler(handler)
+	}
+}
+
+// WithGotoTypeDefinitionHandler sets the handler for the `textDocument/typeDefinition` request.
+func WithGotoTypeDefinitionHandler(handler GotoTypeDefinitionHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetGotoTypeDefinitionHandler(handler)
 	}
 }
 
@@ -373,6 +381,14 @@ func (h *Handler) SetGotoDefinitionHandler(handler GotoDefinitionHandlerFunc) {
 	defer h.mu.Unlock()
 	h.gotoDefinition = handler
 	h.messageHandlers[MethodGotoDefinition] = createGotoDefinitionHandler(h)
+}
+
+// SetGotoTypeDefinitionHandler sets the handler for the `textDocument/typeDefinition` request.
+func (h *Handler) SetGotoTypeDefinitionHandler(handler GotoTypeDefinitionHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.gotoTypeDefinition = handler
+	h.messageHandlers[MethodGotoTypeDefinition] = createGotoTypeDefinitionHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -739,6 +755,24 @@ func createGotoDefinitionHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.gotoDefinition(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createGotoTypeDefinitionHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.gotoTypeDefinition != nil {
+				validMethod = true
+				var params TypeDefinitionParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.gotoTypeDefinition(ctx, &params)
 				}
 			}
 			return

@@ -968,6 +968,79 @@ func (s *HandlerTestSuite) Test_calls_goto_definition_request_handler() {
 	s.Require().Equal(links, returnedLinks)
 }
 
+func (s *HandlerTestSuite) Test_calls_goto_type_definition_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	links := []LocationLink{
+		{
+			TargetURI: "file:///test_type_definition.go",
+			OriginSelectionRange: &Range{
+				Start: Position{
+					Line:      110,
+					Character: 115,
+				},
+				End: Position{
+					Line:      111,
+					Character: 120,
+				},
+			},
+			TargetRange: Range{
+				Start: Position{
+					Line:      113,
+					Character: 112,
+				},
+				End: Position{
+					Line:      113,
+					Character: 124,
+				},
+			},
+			TargetSelectionRange: Range{
+				Start: Position{
+					Line:      113,
+					Character: 112,
+				},
+				End: Position{
+					Line:      113,
+					Character: 124,
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithGotoTypeDefinitionHandler(
+			func(ctx *common.LSPContext, params *TypeDefinitionParams) (any, error) {
+				return links, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	typeDefinitionParams := TypeDefinitionParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_type_definition.go",
+			},
+		},
+	}
+
+	returnedLinks := []LocationLink{}
+	err = clientLSPContext.Call(MethodGotoTypeDefinition, typeDefinitionParams, &returnedLinks)
+	s.Require().NoError(err)
+	s.Require().Equal(links, returnedLinks)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
