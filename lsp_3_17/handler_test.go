@@ -1041,6 +1041,79 @@ func (s *HandlerTestSuite) Test_calls_goto_type_definition_request_handler() {
 	s.Require().Equal(links, returnedLinks)
 }
 
+func (s *HandlerTestSuite) Test_calls_goto_implementation_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	links := []LocationLink{
+		{
+			TargetURI: "file:///test_implementation.go",
+			OriginSelectionRange: &Range{
+				Start: Position{
+					Line:      210,
+					Character: 215,
+				},
+				End: Position{
+					Line:      211,
+					Character: 220,
+				},
+			},
+			TargetRange: Range{
+				Start: Position{
+					Line:      213,
+					Character: 212,
+				},
+				End: Position{
+					Line:      213,
+					Character: 224,
+				},
+			},
+			TargetSelectionRange: Range{
+				Start: Position{
+					Line:      213,
+					Character: 212,
+				},
+				End: Position{
+					Line:      213,
+					Character: 224,
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithGotoImplementationHandler(
+			func(ctx *common.LSPContext, params *ImplementationParams) (any, error) {
+				return links, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	implementationParams := ImplementationParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_implementation.go",
+			},
+		},
+	}
+
+	returnedLinks := []LocationLink{}
+	err = clientLSPContext.Call(MethodGotoImplementation, implementationParams, &returnedLinks)
+	s.Require().NoError(err)
+	s.Require().Equal(links, returnedLinks)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

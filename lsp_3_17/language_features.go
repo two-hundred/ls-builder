@@ -52,3 +52,20 @@ type TypeDefinitionParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_implementation
+
+const MethodGotoImplementation = Method("textDocument/implementation")
+
+// GoToImplementationHandlerFunc is the function signature for the textDocument/implementation
+// request handler that can be registered for a language server.
+//
+// Returns: Location | []Location | []LocationLink | nil
+type GotoImplementationHandlerFunc func(ctx *common.LSPContext, params *ImplementationParams) (any, error)
+
+// ImplementationParams contains the textDocument/implementation request parameters.
+type ImplementationParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+	PartialResultParams
+}

@@ -46,6 +46,7 @@ type Handler struct {
 	gotoDeclaration    GotoDeclarationHandlerFunc
 	gotoDefinition     GotoDefinitionHandlerFunc
 	gotoTypeDefinition GotoTypeDefinitionHandlerFunc
+	gotoImplementation GotoImplementationHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -206,6 +207,13 @@ func WithGotoDefinitionHandler(handler GotoDefinitionHandlerFunc) HandlerOption 
 func WithGotoTypeDefinitionHandler(handler GotoTypeDefinitionHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetGotoTypeDefinitionHandler(handler)
+	}
+}
+
+// WithGotoImplementationHandler sets the handler for the `textDocument/implementation` request.
+func WithGotoImplementationHandler(handler GotoImplementationHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetGotoImplementationHandler(handler)
 	}
 }
 
@@ -389,6 +397,14 @@ func (h *Handler) SetGotoTypeDefinitionHandler(handler GotoTypeDefinitionHandler
 	defer h.mu.Unlock()
 	h.gotoTypeDefinition = handler
 	h.messageHandlers[MethodGotoTypeDefinition] = createGotoTypeDefinitionHandler(h)
+}
+
+// SetGotoImplementationHandler sets the handler for the `textDocument/implementation` request.
+func (h *Handler) SetGotoImplementationHandler(handler GotoImplementationHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.gotoImplementation = handler
+	h.messageHandlers[MethodGotoImplementation] = createGotoImplementationHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -773,6 +789,24 @@ func createGotoTypeDefinitionHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.gotoTypeDefinition(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createGotoImplementationHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.gotoImplementation != nil {
+				validMethod = true
+				var params ImplementationParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.gotoImplementation(ctx, &params)
 				}
 			}
 			return
