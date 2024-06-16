@@ -12,7 +12,8 @@ import (
 // to respond to client notifications and requests.
 // Server capabilities can be derived from the handlers defined here.
 // Instances of handlers should be created with the `NewHandler` function with
-// message handlers provided as options or set after creation using `SetHandler`.
+// message handlers provided as options or set after creation using `Set*Handler`
+// methods.
 type Handler struct {
 	// Base Protocol
 	cancelRequest CancelRequestHandlerFunc
@@ -33,6 +34,7 @@ type Handler struct {
 	textDocumentWillSave          TextDocumentWillSaveHandlerFunc
 	textDocumentWillSaveWaitUntil TextDocumentWillSaveWaitUntilHandlerFunc
 	textDocumentDidSave           TextDocumentDidSaveHandlerFunc
+	textDocumentDidClose          TextDocumentDidCloseHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -132,6 +134,14 @@ func WithTextDocumentWillSaveWaitUntilHandler(handler TextDocumentWillSaveWaitUn
 func WithTextDocumentDidSaveHandler(handler TextDocumentDidSaveHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetTextDocumentDidSaveHandler(handler)
+	}
+}
+
+// WithTextDocumentDidCloseHandler sets the handler
+// for the `textDocument/didClose` notification.
+func WithTextDocumentDidCloseHandler(handler TextDocumentDidCloseHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetTextDocumentDidCloseHandler(handler)
 	}
 }
 
@@ -246,6 +256,15 @@ func (h *Handler) SetTextDocumentDidSaveHandler(handler TextDocumentDidSaveHandl
 	defer h.mu.Unlock()
 	h.textDocumentDidSave = handler
 	h.messageHandlers[MethodTextDocumentDidSave] = createTextDocumentDidSaveHandler(h)
+}
+
+// SetTextDocumentDidCloseHandler sets the handler
+// for the `textDocument/didClose` notification.
+func (h *Handler) SetTextDocumentDidCloseHandler(handler TextDocumentDidCloseHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.textDocumentDidClose = handler
+	h.messageHandlers[MethodTextDocumentDidClose] = createTextDocumentDidCloseHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -486,6 +505,24 @@ func createTextDocumentDidSaveHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.textDocumentDidSave(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createTextDocumentDidCloseHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.textDocumentDidClose != nil {
+				validMethod = true
+				var params DidCloseTextDocumentParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.textDocumentDidClose(ctx, &params)
 				}
 			}
 			return

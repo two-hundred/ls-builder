@@ -273,3 +273,18 @@ type DidSaveTextDocumentParams struct {
 	// when the save notification was requested.
 	Text *string `json:"text,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didClose
+
+const MethodTextDocumentDidClose = Method("textDocument/didClose")
+
+// TextDocumentDidCloseHandlerFunc is the function signature for the handler
+// of the textDocument/didClose notification.
+type TextDocumentDidCloseHandlerFunc func(ctx *common.LSPContext, params *DidCloseTextDocumentParams) error
+
+// DidCloseTextDocumentParams are the parameters of a did close
+// text document notification.
+type DidCloseTextDocumentParams struct {
+	// The document that was closed.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}

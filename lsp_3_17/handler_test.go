@@ -14,7 +14,7 @@ type HandlerTestSuite struct {
 	suite.Suite
 }
 
-func (s *HandlerTestSuite) Test_calls_cancel_request_handler() {
+func (s *HandlerTestSuite) Test_calls_cancel_request_notification_handler() {
 	logger, err := zap.NewDevelopment()
 	s.Require().NoError(err)
 
@@ -56,7 +56,7 @@ func (s *HandlerTestSuite) Test_calls_cancel_request_handler() {
 	}
 }
 
-func (s *HandlerTestSuite) Test_calls_progress_request_handler() {
+func (s *HandlerTestSuite) Test_calls_progress_notification_handler() {
 	logger, err := zap.NewDevelopment()
 	s.Require().NoError(err)
 
@@ -166,7 +166,7 @@ func (s *HandlerTestSuite) Test_calls_initialize_request_handler_and_sets_initia
 	s.Require().True(serverHandler.IsInitialized())
 }
 
-func (s *HandlerTestSuite) Test_calls_initialized_request_handler() {
+func (s *HandlerTestSuite) Test_calls_initialized_notification_handler() {
 	logger, err := zap.NewDevelopment()
 	s.Require().NoError(err)
 
@@ -204,7 +204,7 @@ func (s *HandlerTestSuite) Test_calls_initialized_request_handler() {
 	}
 }
 
-func (s *HandlerTestSuite) Test_calls_set_trace_request_handler() {
+func (s *HandlerTestSuite) Test_calls_set_trace_notification_handler() {
 	logger, err := zap.NewDevelopment()
 	s.Require().NoError(err)
 
@@ -284,7 +284,7 @@ func (s *HandlerTestSuite) Test_calls_shutdown_request_handler() {
 	s.Require().False(serverHandler.IsInitialized())
 }
 
-func (s *HandlerTestSuite) Test_calls_exit_request_handler() {
+func (s *HandlerTestSuite) Test_calls_exit_notification_handler() {
 	logger, err := zap.NewDevelopment()
 	s.Require().NoError(err)
 
@@ -321,7 +321,7 @@ func (s *HandlerTestSuite) Test_calls_exit_request_handler() {
 	}
 }
 
-func (s *HandlerTestSuite) Test_calls_text_document_did_open_request_handler() {
+func (s *HandlerTestSuite) Test_calls_text_document_did_open_notification_handler() {
 	logger, err := zap.NewDevelopment()
 	s.Require().NoError(err)
 
@@ -367,7 +367,7 @@ func (s *HandlerTestSuite) Test_calls_text_document_did_open_request_handler() {
 	}
 }
 
-func (s *HandlerTestSuite) Test_calls_text_document_did_change_request_handler() {
+func (s *HandlerTestSuite) Test_calls_text_document_did_change_notification_handler() {
 	logger, err := zap.NewDevelopment()
 	s.Require().NoError(err)
 
@@ -418,7 +418,7 @@ func (s *HandlerTestSuite) Test_calls_text_document_did_change_request_handler()
 	}
 }
 
-func (s *HandlerTestSuite) Test_calls_text_document_will_save_request_handler() {
+func (s *HandlerTestSuite) Test_calls_text_document_will_save_notification_handler() {
 	logger, err := zap.NewDevelopment()
 	s.Require().NoError(err)
 
@@ -514,7 +514,7 @@ func (s *HandlerTestSuite) Test_calls_text_document_will_save_wait_until_request
 	s.Require().Equal(textEdits, returnedResultTextEdits)
 }
 
-func (s *HandlerTestSuite) Test_calls_text_document_did_save_request_handler() {
+func (s *HandlerTestSuite) Test_calls_text_document_did_save_notification_handler() {
 	logger, err := zap.NewDevelopment()
 	s.Require().NoError(err)
 
@@ -556,6 +556,49 @@ func (s *HandlerTestSuite) Test_calls_text_document_did_save_request_handler() {
 		s.Fail("timeout")
 	case receivedParams := <-callChan:
 		s.Require().Equal(textDocumentDidSaveParams, *receivedParams)
+	}
+}
+
+func (s *HandlerTestSuite) Test_calls_text_document_did_close_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DidCloseTextDocumentParams, 1)
+	serverHandler := NewHandler(
+		WithTextDocumentDidCloseHandler(
+			func(ctx *common.LSPContext, params *DidCloseTextDocumentParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	textDocumentDidCloseParams := DidCloseTextDocumentParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test.txt",
+		},
+	}
+
+	err = clientLSPContext.Notify(MethodTextDocumentDidClose, textDocumentDidCloseParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(textDocumentDidCloseParams, *receivedParams)
 	}
 }
 
