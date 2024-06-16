@@ -367,6 +367,57 @@ func (s *HandlerTestSuite) Test_calls_text_document_did_open_request_handler() {
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_text_document_did_change_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DidChangeTextDocumentParams, 1)
+	serverHandler := NewHandler(
+		WithTextDocumentDidChangeHandler(
+			func(ctx *common.LSPContext, params *DidChangeTextDocumentParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	textDocumentDidChangeParams := DidChangeTextDocumentParams{
+		TextDocument: VersionedTextDocumentIdentifier{
+			TextDocumentIdentifier: TextDocumentIdentifier{
+				URI: "file:///test.txt",
+			},
+			Version: 1,
+		},
+		ContentChanges: []interface{}{
+			TextDocumentContentChangeEventWhole{
+				Text: "new content",
+			},
+		},
+	}
+
+	err = clientLSPContext.Notify(MethodTextDocumentDidChange, textDocumentDidChangeParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(textDocumentDidChangeParams, *receivedParams)
+	}
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

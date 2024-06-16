@@ -28,7 +28,8 @@ type Handler struct {
 	setTrace SetTraceHandlerFunc
 
 	// Text Document Synchronization
-	textDocumentDidOpen TextDocumentDidOpenHandlerFunc
+	textDocumentDidOpen   TextDocumentDidOpenHandlerFunc
+	textDocumentDidChange TextDocumentDidChangeHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -96,6 +97,14 @@ func WithExitHandler(handler ExitHandlerFunc) HandlerOption {
 func WithTextDocumentDidOpenHandler(handler TextDocumentDidOpenHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetTextDocumentDidOpenHandler(handler)
+	}
+}
+
+// WithTextDocumentDidChangeHandler sets the handler
+// for the `textDocument/didChange` notification.
+func WithTextDocumentDidChangeHandler(handler TextDocumentDidChangeHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetTextDocumentDidChangeHandler(handler)
 	}
 }
 
@@ -174,6 +183,15 @@ func (h *Handler) SetTextDocumentDidOpenHandler(handler TextDocumentDidOpenHandl
 	defer h.mu.Unlock()
 	h.textDocumentDidOpen = handler
 	h.messageHandlers[MethodTextDocumentDidOpen] = createSetTextDocumentDidOpenHandler(h)
+}
+
+// SetTextDocumentDidChangeHandler sets the handler
+// for the `textDocument/didChange` notification.
+func (h *Handler) SetTextDocumentDidChangeHandler(handler TextDocumentDidChangeHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.textDocumentDidChange = handler
+	h.messageHandlers[MethodTextDocumentDidChange] = createTextDocumentDidChangeHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -342,6 +360,24 @@ func createSetTextDocumentDidOpenHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.textDocumentDidOpen(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createTextDocumentDidChangeHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.textDocumentDidChange != nil {
+				validMethod = true
+				var params DidChangeTextDocumentParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.textDocumentDidChange(ctx, &params)
 				}
 			}
 			return
