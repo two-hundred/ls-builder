@@ -201,3 +201,41 @@ type TextDocumentContentChangeEventWhole struct {
 	// The new text of the whole document.
 	Text string `json:"text"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_willSave
+
+const MethodTextDocumentWillSave = Method("textDocument/willSave")
+
+// TextDocumentWillSaveHandlerFunc is the function signature for the handler
+// of the textDocument/willSave notification.
+type TextDocumentWillSaveHandlerFunc func(
+	ctx *common.LSPContext,
+	params *WillSaveTextDocumentParams,
+) error
+
+// WillSaveTextDocumentParams are the parameters of a will save
+// text document notification.
+type WillSaveTextDocumentParams struct {
+	// The document that will be saved.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The reason why the document is being saved.
+	Reason TextDocumentSaveReason `json:"reason"`
+}
+
+// TextDocumentSaveReason represents the reason why a text document is being saved.
+type TextDocumentSaveReason Integer
+
+const (
+	// TextDocumentSaveReasonManual means that the document save is manually triggered,
+	// e.g. by the user pressing save, by starting debugging, or by an API call.
+	TextDocumentSaveReasonManual TextDocumentSaveReason = 1
+
+	// TextDocumentSaveReasonAfterDelay means that the document save is triggered
+	// automatically after a delay.
+	TextDocumentSaveReasonAfterDelay TextDocumentSaveReason = 2
+
+	// TextDocumentSaveReasonFocusOut means that the document save is triggered when
+	// the editor loses focus.
+	TextDocumentSaveReasonFocusOut TextDocumentSaveReason = 3
+)

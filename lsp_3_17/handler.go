@@ -30,6 +30,7 @@ type Handler struct {
 	// Text Document Synchronization
 	textDocumentDidOpen   TextDocumentDidOpenHandlerFunc
 	textDocumentDidChange TextDocumentDidChangeHandlerFunc
+	textDocumentwillSave  TextDocumentWillSaveHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -105,6 +106,14 @@ func WithTextDocumentDidOpenHandler(handler TextDocumentDidOpenHandlerFunc) Hand
 func WithTextDocumentDidChangeHandler(handler TextDocumentDidChangeHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetTextDocumentDidChangeHandler(handler)
+	}
+}
+
+// WithTextDocumentWillSaveHandler sets the handler
+// for the `textDocument/willSave` notification.
+func WithTextDocumentWillSaveHandler(handler TextDocumentWillSaveHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetTextDocumentWillSaveHandler(handler)
 	}
 }
 
@@ -192,6 +201,15 @@ func (h *Handler) SetTextDocumentDidChangeHandler(handler TextDocumentDidChangeH
 	defer h.mu.Unlock()
 	h.textDocumentDidChange = handler
 	h.messageHandlers[MethodTextDocumentDidChange] = createTextDocumentDidChangeHandler(h)
+}
+
+// SetTextDocumentWillSaveHandler sets the handler
+// for the `textDocument/willSave` notification.
+func (h *Handler) SetTextDocumentWillSaveHandler(handler TextDocumentWillSaveHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.textDocumentwillSave = handler
+	h.messageHandlers[MethodTextDocumentWillSave] = createTextDocumentWillSaveHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -378,6 +396,24 @@ func createTextDocumentDidChangeHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.textDocumentDidChange(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createTextDocumentWillSaveHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.textDocumentwillSave != nil {
+				validMethod = true
+				var params WillSaveTextDocumentParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.textDocumentwillSave(ctx, &params)
 				}
 			}
 			return

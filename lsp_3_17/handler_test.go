@@ -418,6 +418,50 @@ func (s *HandlerTestSuite) Test_calls_text_document_did_change_request_handler()
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_text_document_will_save_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *WillSaveTextDocumentParams, 1)
+	serverHandler := NewHandler(
+		WithTextDocumentWillSaveHandler(
+			func(ctx *common.LSPContext, params *WillSaveTextDocumentParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	textDocumentWillSaveParams := WillSaveTextDocumentParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test.txt",
+		},
+		Reason: TextDocumentSaveReasonManual,
+	}
+
+	err = clientLSPContext.Notify(MethodTextDocumentWillSave, textDocumentWillSaveParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(textDocumentWillSaveParams, *receivedParams)
+	}
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
