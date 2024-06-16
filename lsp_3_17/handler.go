@@ -39,6 +39,7 @@ type Handler struct {
 	// Notebook Document Synchronisation
 	notebookDocumentDidOpen   NotebookDocumentDidOpenHandlerFunc
 	notebookDocumentDidChange NotebookDocumentDidChangeHandlerFunc
+	notebookDocumentDidSave   NotebookDocumentDidSaveHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -162,6 +163,14 @@ func WithNotebookDocumentDidOpenHandler(handler NotebookDocumentDidOpenHandlerFu
 func WithNotebookDocumentDidChangeHandler(handler NotebookDocumentDidChangeHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetNotebookDocumentDidChangeHandler(handler)
+	}
+}
+
+// WithNotebookDocumentDidSaveHandler sets the handler
+// for the `notebookDocument/didSave` notification.
+func WithNotebookDocumentDidSaveHandler(handler NotebookDocumentDidSaveHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetNotebookDocumentDidSaveHandler(handler)
 	}
 }
 
@@ -303,6 +312,15 @@ func (h *Handler) SetNotebookDocumentDidChangeHandler(handler NotebookDocumentDi
 	defer h.mu.Unlock()
 	h.notebookDocumentDidChange = handler
 	h.messageHandlers[MethodNotebookDocumentDidChange] = createNotebookDocumentDidChangeHandler(h)
+}
+
+// SetNotebookDocumentDidSaveHandler sets the handler
+// for the `notebookDocument/didSave` notification.
+func (h *Handler) SetNotebookDocumentDidSaveHandler(handler NotebookDocumentDidSaveHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.notebookDocumentDidSave = handler
+	h.messageHandlers[MethodNotebookDocumentDidSave] = createNotebookDocumentDidSaveHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -597,6 +615,24 @@ func createNotebookDocumentDidChangeHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.notebookDocumentDidChange(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createNotebookDocumentDidSaveHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.notebookDocumentDidSave != nil {
+				validMethod = true
+				var params DidSaveNotebookDocumentParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.notebookDocumentDidSave(ctx, &params)
 				}
 			}
 			return

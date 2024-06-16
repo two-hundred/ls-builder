@@ -384,3 +384,32 @@ type NotebookCellArrayChange struct {
 	// The new cells, if any.
 	Cells []NotebookCell `json:"cells,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#notebookDocument_didSave
+
+const MethodNotebookDocumentDidSave = Method("notebookDocument/didSave")
+
+// NotebookDocumentDidSaveHandlerFunc is the function signature for the notebookDocument/didSave
+// notification handler that can be registered for a language server.
+type NotebookDocumentDidSaveHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DidSaveNotebookDocumentParams,
+) error
+
+// DidSaveNotebookDocumentParams contains the parameters
+// sent in a save notebook document notification.
+//
+// @since 3.17.0
+type DidSaveNotebookDocumentParams struct {
+	// The notebook document that was saved.
+	NotebookDocument NotebookDocumentIdentifier `json:"notebookDocument"`
+}
+
+// NotebookDocumentIdentifier represents a literal to identify
+// a notebook document in the client.
+//
+// @since 3.17.0
+type NotebookDocumentIdentifier struct {
+	// The notebook document's URI.
+	URI URI `json:"uri"`
+}

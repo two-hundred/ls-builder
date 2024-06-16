@@ -731,6 +731,49 @@ func (s *HandlerTestSuite) Test_calls_notebook_document_did_change_notification_
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_notebook_document_did_save_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DidSaveNotebookDocumentParams, 1)
+	serverHandler := NewHandler(
+		WithNotebookDocumentDidSaveHandler(
+			func(ctx *common.LSPContext, params *DidSaveNotebookDocumentParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	notebookDocumentDidSaveParams := DidSaveNotebookDocumentParams{
+		NotebookDocument: NotebookDocumentIdentifier{
+			URI: "file:///test.ipynb",
+		},
+	}
+
+	err = clientLSPContext.Notify(MethodNotebookDocumentDidSave, notebookDocumentDidSaveParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(notebookDocumentDidSaveParams, *receivedParams)
+	}
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
