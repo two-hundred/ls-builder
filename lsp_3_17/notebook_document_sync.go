@@ -413,3 +413,27 @@ type NotebookDocumentIdentifier struct {
 	// The notebook document's URI.
 	URI URI `json:"uri"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#notebookDocument_didClose
+
+const MethodNotebookDocumentDidClose = Method("notebookDocument/didClose")
+
+// NotebookDocumentDidCloseHandlerFunc is the function signature for the notebookDocument/didClose
+// notification handler that can be registered for a language server.
+type NotebookDocumentDidCloseHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DidCloseNotebookDocumentParams,
+) error
+
+// DidCloseNotebookDocumentParams contains the parameters
+// sent in a close notebook document notification.
+//
+// @since 3.17.0
+type DidCloseNotebookDocumentParams struct {
+	// The notebook document that was closed.
+	NotebookDocument NotebookDocumentIdentifier `json:"notebookDocument"`
+
+	// The text documents that represent the content
+	// of a notebook cell that was closed.
+	CellTextDocuments []TextDocumentIdentifier `json:"cellTextDocuments"`
+}
