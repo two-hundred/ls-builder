@@ -32,6 +32,7 @@ type Handler struct {
 	textDocumentDidChange         TextDocumentDidChangeHandlerFunc
 	textDocumentWillSave          TextDocumentWillSaveHandlerFunc
 	textDocumentWillSaveWaitUntil TextDocumentWillSaveWaitUntilHandlerFunc
+	textDocumentDidSave           TextDocumentDidSaveHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -123,6 +124,14 @@ func WithTextDocumentWillSaveHandler(handler TextDocumentWillSaveHandlerFunc) Ha
 func WithTextDocumentWillSaveWaitUntilHandler(handler TextDocumentWillSaveWaitUntilHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetTextDocumentWillSaveWaitUntilHandler(handler)
+	}
+}
+
+// WithTextDocumentDidSaveHandler sets the handler
+// for the `textDocument/didSave` notification.
+func WithTextDocumentDidSaveHandler(handler TextDocumentDidSaveHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetTextDocumentDidSaveHandler(handler)
 	}
 }
 
@@ -228,6 +237,15 @@ func (h *Handler) SetTextDocumentWillSaveWaitUntilHandler(handler TextDocumentWi
 	defer h.mu.Unlock()
 	h.textDocumentWillSaveWaitUntil = handler
 	h.messageHandlers[MethodTextDocumentWillSaveWaitUntil] = createTextDocumentWillSaveWaitUntilHandler(h)
+}
+
+// SetTextDocumentDidSaveHandler sets the handler
+// for the `textDocument/didSave` notification.
+func (h *Handler) SetTextDocumentDidSaveHandler(handler TextDocumentDidSaveHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.textDocumentDidSave = handler
+	h.messageHandlers[MethodTextDocumentDidSave] = createTextDocumentDidSaveHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -450,6 +468,24 @@ func createTextDocumentWillSaveWaitUntilHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.textDocumentWillSaveWaitUntil(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createTextDocumentDidSaveHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.textDocumentDidSave != nil {
+				validMethod = true
+				var params DidSaveTextDocumentParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.textDocumentDidSave(ctx, &params)
 				}
 			}
 			return

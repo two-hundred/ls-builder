@@ -250,3 +250,26 @@ type TextDocumentWillSaveWaitUntilHandlerFunc func(
 	ctx *common.LSPContext,
 	params *WillSaveTextDocumentParams,
 ) ([]TextEdit, error)
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didSave
+
+const MethodTextDocumentDidSave = Method("textDocument/didSave")
+
+// TextDocumentDidSaveHandlerFunc is the function signature for the handler
+// of the textDocument/didSave notification.
+type TextDocumentDidSaveHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DidSaveTextDocumentParams,
+) error
+
+// DidSaveTextDocumentParams are the parameters of a did save
+// text document notification.
+type DidSaveTextDocumentParams struct {
+	// The document that was saved.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// Optional, contains the content when saved.
+	// Whether this is present or not depends on the includeText value
+	// when the save notification was requested.
+	Text *string `json:"text,omitempty"`
+}
