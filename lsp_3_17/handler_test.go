@@ -462,6 +462,58 @@ func (s *HandlerTestSuite) Test_calls_text_document_will_save_request_handler() 
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_text_document_will_save_wait_until_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	textEdits := []TextEdit{
+		{
+			Range: Range{
+				Start: Position{
+					Line:      1,
+					Character: 5,
+				},
+				End: Position{
+					Line:      1,
+					Character: 10,
+				},
+			},
+			NewText: "new text",
+		},
+	}
+	serverHandler := NewHandler(
+		WithTextDocumentWillSaveWaitUntilHandler(
+			func(ctx *common.LSPContext, params *WillSaveTextDocumentParams) ([]TextEdit, error) {
+				return textEdits, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	textDocumentWillSaveParams := WillSaveTextDocumentParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test.txt",
+		},
+		Reason: TextDocumentSaveReasonManual,
+	}
+
+	returnedResultTextEdits := []TextEdit{}
+	err = clientLSPContext.Call(MethodTextDocumentWillSaveWaitUntil, textDocumentWillSaveParams, &returnedResultTextEdits)
+	s.Require().NoError(err)
+	s.Require().Equal(textEdits, returnedResultTextEdits)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

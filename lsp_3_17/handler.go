@@ -28,9 +28,10 @@ type Handler struct {
 	setTrace SetTraceHandlerFunc
 
 	// Text Document Synchronization
-	textDocumentDidOpen   TextDocumentDidOpenHandlerFunc
-	textDocumentDidChange TextDocumentDidChangeHandlerFunc
-	textDocumentwillSave  TextDocumentWillSaveHandlerFunc
+	textDocumentDidOpen           TextDocumentDidOpenHandlerFunc
+	textDocumentDidChange         TextDocumentDidChangeHandlerFunc
+	textDocumentWillSave          TextDocumentWillSaveHandlerFunc
+	textDocumentWillSaveWaitUntil TextDocumentWillSaveWaitUntilHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -114,6 +115,14 @@ func WithTextDocumentDidChangeHandler(handler TextDocumentDidChangeHandlerFunc) 
 func WithTextDocumentWillSaveHandler(handler TextDocumentWillSaveHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetTextDocumentWillSaveHandler(handler)
+	}
+}
+
+// WithTextDocumentWillSaveWaitUntilHandler sets the handler
+// for the `textDocument/willSaveWaitUntil` request.
+func WithTextDocumentWillSaveWaitUntilHandler(handler TextDocumentWillSaveWaitUntilHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetTextDocumentWillSaveWaitUntilHandler(handler)
 	}
 }
 
@@ -208,8 +217,17 @@ func (h *Handler) SetTextDocumentDidChangeHandler(handler TextDocumentDidChangeH
 func (h *Handler) SetTextDocumentWillSaveHandler(handler TextDocumentWillSaveHandlerFunc) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.textDocumentwillSave = handler
+	h.textDocumentWillSave = handler
 	h.messageHandlers[MethodTextDocumentWillSave] = createTextDocumentWillSaveHandler(h)
+}
+
+// SetTextDocumentWillSaveWaitUntilHandler sets the handler
+// for the `textDocument/willSaveWaitUntil` request.
+func (h *Handler) SetTextDocumentWillSaveWaitUntilHandler(handler TextDocumentWillSaveWaitUntilHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.textDocumentWillSaveWaitUntil = handler
+	h.messageHandlers[MethodTextDocumentWillSaveWaitUntil] = createTextDocumentWillSaveWaitUntilHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -408,12 +426,30 @@ func createTextDocumentWillSaveHandler(root *Handler) common.Handler {
 		func(
 			ctx *common.LSPContext,
 		) (r any, validMethod bool, validParams bool, err error) {
-			if root.textDocumentwillSave != nil {
+			if root.textDocumentWillSave != nil {
 				validMethod = true
 				var params WillSaveTextDocumentParams
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
-					err = root.textDocumentwillSave(ctx, &params)
+					err = root.textDocumentWillSave(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createTextDocumentWillSaveWaitUntilHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.textDocumentWillSaveWaitUntil != nil {
+				validMethod = true
+				var params WillSaveTextDocumentParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.textDocumentWillSaveWaitUntil(ctx, &params)
 				}
 			}
 			return

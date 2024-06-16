@@ -239,3 +239,14 @@ const (
 	// the editor loses focus.
 	TextDocumentSaveReasonFocusOut TextDocumentSaveReason = 3
 )
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_willSaveWaitUntil
+
+const MethodTextDocumentWillSaveWaitUntil = Method("textDocument/willSaveWaitUntil")
+
+// TextDocumentWillSaveWaitUntilHandlerFunc is the function signature for the handler
+// of the textDocument/willSaveWaitUntil request.
+type TextDocumentWillSaveWaitUntilHandlerFunc func(
+	ctx *common.LSPContext,
+	params *WillSaveTextDocumentParams,
+) ([]TextEdit, error)
