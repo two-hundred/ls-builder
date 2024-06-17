@@ -166,3 +166,32 @@ type CallHierarchyIncomingCall struct {
 	// denoted by [`this.from`](#CallHierarchyIncomingCall.from).
 	FromRanges []Range `json:"fromRanges"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#callHierarchy_outgoingCalls
+
+const MethodCallHierarchyOutgoingCalls = Method("callHierarchy/outgoingCalls")
+
+// CallHierarchyOutgoingCallsHandlerFunc is the function signature for the callHierarchy/outgoingCalls
+// request handler that can be registered for a language server.
+type CallHierarchyOutgoingCallsHandlerFunc func(
+	ctx *common.LSPContext,
+	params *CallHierarchyOutgoingCallsParams,
+) ([]CallHierarchyOutgoingCall, error)
+
+// CallHierarchyOutgoingCallsParams contains the callHierarchy/outgoingCalls request parameters.
+type CallHierarchyOutgoingCallsParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	Item CallHierarchyItem `json:"item"`
+}
+
+// CallHierarchyOutgoingCall represents an outgoing call within the call hierarchy.
+type CallHierarchyOutgoingCall struct {
+	// The item that is called.
+	To CallHierarchyItem `json:"to"`
+
+	// The range at which this item is called. This is the range relative to
+	// the caller, e.g the item passed to `callHierarchy/outgoingCalls` request.
+	FromRanges []Range `json:"fromRanges"`
+}

@@ -50,6 +50,7 @@ type Handler struct {
 	findReferences             FindReferencesHandlerFunc
 	prepareCallHierarchy       PrepareCallHierarchyHandlerFunc
 	callHierarchyIncomingCalls CallHierarchyIncomingCallsHandlerFunc
+	callHierarchyOutgoingCalls CallHierarchyOutgoingCallsHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -238,6 +239,13 @@ func WithPrepareCallHierarchyHandler(handler PrepareCallHierarchyHandlerFunc) Ha
 func WithCallHierarchyIncomingCallsHandler(handler CallHierarchyIncomingCallsHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetCallHierarchyIncomingCallsHandler(handler)
+	}
+}
+
+// WithCallHierarchyOutgoingCallsHandler sets the handler for the `textDocument/outgoingCalls` request.
+func WithCallHierarchyOutgoingCallsHandler(handler CallHierarchyOutgoingCallsHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetCallHierarchyOutgoingCallsHandler(handler)
 	}
 }
 
@@ -453,6 +461,14 @@ func (h *Handler) SetCallHierarchyIncomingCallsHandler(handler CallHierarchyInco
 	defer h.mu.Unlock()
 	h.callHierarchyIncomingCalls = handler
 	h.messageHandlers[MethodCallHierarchyIncomingCalls] = createCallHierarchyIncomingCallsHandler(h)
+}
+
+// SetCallHierarchyOutgoingCallsHandler sets the handler for the `textDocument/outgoingCalls` request.
+func (h *Handler) SetCallHierarchyOutgoingCallsHandler(handler CallHierarchyOutgoingCallsHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.callHierarchyOutgoingCalls = handler
+	h.messageHandlers[MethodCallHierarchyOutgoingCalls] = createCallHierarchyOutgoingCallsHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -909,6 +925,24 @@ func createCallHierarchyIncomingCallsHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.callHierarchyIncomingCalls(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createCallHierarchyOutgoingCallsHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.callHierarchyOutgoingCalls != nil {
+				validMethod = true
+				var params CallHierarchyOutgoingCallsParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.callHierarchyOutgoingCalls(ctx, &params)
 				}
 			}
 			return

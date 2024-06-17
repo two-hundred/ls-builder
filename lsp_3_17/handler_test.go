@@ -1270,6 +1270,65 @@ func (s *HandlerTestSuite) Test_calls_call_hierarchy_incoming_calls_request_hand
 	s.Require().Equal(calls, returnedCalls)
 }
 
+func (s *HandlerTestSuite) Test_calls_call_hierarchy_outgoing_calls_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	calls := []CallHierarchyOutgoingCall{
+		{
+			To: CallHierarchyItem{
+				URI: "file:///test_call_hierarchy_outgoing_calls.go",
+			},
+			FromRanges: []Range{
+				{
+					Start: Position{
+						Line:      1,
+						Character: 5,
+					},
+					End: Position{
+						Line:      1,
+						Character: 10,
+					},
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithCallHierarchyOutgoingCallsHandler(
+			func(ctx *common.LSPContext, params *CallHierarchyOutgoingCallsParams) ([]CallHierarchyOutgoingCall, error) {
+				return calls, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	callHierarchyOutgoingCallsParams := CallHierarchyOutgoingCallsParams{
+		Item: CallHierarchyItem{
+			URI: "file:///test_call_hierarchy_outgoing_calls.go",
+		},
+	}
+
+	returnedCalls := []CallHierarchyOutgoingCall{}
+	err = clientLSPContext.Call(
+		MethodCallHierarchyOutgoingCalls,
+		callHierarchyOutgoingCallsParams,
+		&returnedCalls,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(calls, returnedCalls)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
