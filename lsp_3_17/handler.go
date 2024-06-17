@@ -43,11 +43,12 @@ type Handler struct {
 	notebookDocumentDidClose  NotebookDocumentDidCloseHandlerFunc
 
 	// Language Features
-	gotoDeclaration    GotoDeclarationHandlerFunc
-	gotoDefinition     GotoDefinitionHandlerFunc
-	gotoTypeDefinition GotoTypeDefinitionHandlerFunc
-	gotoImplementation GotoImplementationHandlerFunc
-	findReferences     FindReferencesHandlerFunc
+	gotoDeclaration      GotoDeclarationHandlerFunc
+	gotoDefinition       GotoDefinitionHandlerFunc
+	gotoTypeDefinition   GotoTypeDefinitionHandlerFunc
+	gotoImplementation   GotoImplementationHandlerFunc
+	findReferences       FindReferencesHandlerFunc
+	prepareCallHierarchy PrepareCallHierarchyHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -222,6 +223,13 @@ func WithGotoImplementationHandler(handler GotoImplementationHandlerFunc) Handle
 func WithFindReferencesHandler(handler FindReferencesHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetFindReferencesHandler(handler)
+	}
+}
+
+// WithPrepareCallHierarchyHandler sets the handler for the `textDocument/prepareCallHierarchy` request.
+func WithPrepareCallHierarchyHandler(handler PrepareCallHierarchyHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetPrepareCallHierarchyHandler(handler)
 	}
 }
 
@@ -421,6 +429,14 @@ func (h *Handler) SetFindReferencesHandler(handler FindReferencesHandlerFunc) {
 	defer h.mu.Unlock()
 	h.findReferences = handler
 	h.messageHandlers[MethodFindReferences] = createFindReferencesHandler(h)
+}
+
+// SetPrepareCallHierarchyHandler sets the handler for the `textDocument/prepareCallHierarchy` request.
+func (h *Handler) SetPrepareCallHierarchyHandler(handler PrepareCallHierarchyHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.prepareCallHierarchy = handler
+	h.messageHandlers[MethodPrepareCallHierarchy] = createPrepareCallHierarchyHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -841,6 +857,24 @@ func createFindReferencesHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.findReferences(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createPrepareCallHierarchyHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.prepareCallHierarchy != nil {
+				validMethod = true
+				var params CallHierarchyPrepareParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.prepareCallHierarchy(ctx, &params)
 				}
 			}
 			return

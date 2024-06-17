@@ -92,3 +92,48 @@ type ReferenceContext struct {
 	// Include the declaration of the current symbol.
 	IncludeDeclaration bool `json:"includeDeclaration"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_prepareCallHierarchy
+
+const MethodPrepareCallHierarchy = Method("textDocument/prepareCallHierarchy")
+
+// PrepareCallHierarchyHandlerFunc is the function signature for the textDocument/prepareCallHierarchy
+// request handler that can be registered for a language server.
+type PrepareCallHierarchyHandlerFunc func(ctx *common.LSPContext, params *CallHierarchyPrepareParams) ([]CallHierarchyItem, error)
+
+// CallHierarchyPrepareParams contains the textDocument/prepareCallHierarchy request parameters.
+type CallHierarchyPrepareParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+}
+
+// CallHierarchyItem represents an item within the call hierarchy.
+type CallHierarchyItem struct {
+	// The name of this item.
+	Name string `json:"name"`
+
+	// The kind of this item.
+	Kind SymbolKind `json:"kind"`
+
+	// Tags for this item.
+	Tags []SymbolTag `json:"tags,omitempty"`
+
+	// More detail for this item, e.g. the signature of a function.
+	Detail *string `json:"detail,omitempty"`
+
+	// The resource identifier of this item.
+	URI DocumentURI `json:"uri"`
+
+	// The range enclosing this symbol not including leading/trailing whitespace
+	// but everything else, e.g. comments and code.
+	Range Range `json:"range"`
+
+	// The range that should be selected and revealed when this symbol is being
+	// picked, e.g. the name of a function. Must be contained by the
+	// [`range`](#CallHierarchyItem.range).
+	SelectionRange Range `json:"selectionRange"`
+
+	// A data entry field that is preserved between a call hierarchy prepare and
+	// incoming calls or outgoing calls requests.
+	Data any `json:"data,omitempty"`
+}

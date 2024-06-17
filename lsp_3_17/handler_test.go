@@ -1170,6 +1170,59 @@ func (s *HandlerTestSuite) Test_calls_find_references_request_handler() {
 	s.Require().Equal(locations, returnedLocations)
 }
 
+func (s *HandlerTestSuite) Test_calls_prepare_call_hierarchy_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	items := []CallHierarchyItem{
+		{
+			URI: "file:///test_prepare_call_hierarchy.go",
+			Range: Range{
+				Start: Position{
+					Line:      410,
+					Character: 415,
+				},
+				End: Position{
+					Line:      411,
+					Character: 420,
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithPrepareCallHierarchyHandler(
+			func(ctx *common.LSPContext, params *CallHierarchyPrepareParams) ([]CallHierarchyItem, error) {
+				return items, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	prepareCallHierarchyParams := CallHierarchyPrepareParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_prepare_call_hierarchy.go",
+			},
+		},
+	}
+
+	returnedItems := []CallHierarchyItem{}
+	err = clientLSPContext.Call(MethodPrepareCallHierarchy, prepareCallHierarchyParams, &returnedItems)
+	s.Require().NoError(err)
+	s.Require().Equal(items, returnedItems)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
