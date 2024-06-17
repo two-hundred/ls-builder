@@ -69,3 +69,26 @@ type ImplementationParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_references
+
+const MethodFindReferences = Method("textDocument/references")
+
+// FindReferencesHandlerFunc is the function signature for the textDocument/references
+// request handler that can be registered for a language server.
+type FindReferencesHandlerFunc func(ctx *common.LSPContext, params *ReferencesParams) ([]Location, error)
+
+// ReferencesParams contains the textDocument/references request parameters.
+type ReferencesParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+	PartialResultParams
+
+	Context ReferenceContext `json:"context"`
+}
+
+// ReferenceContext contains additional information for the textDocument/references request.
+type ReferenceContext struct {
+	// Include the declaration of the current symbol.
+	IncludeDeclaration bool `json:"includeDeclaration"`
+}

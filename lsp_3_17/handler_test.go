@@ -1114,6 +1114,62 @@ func (s *HandlerTestSuite) Test_calls_goto_implementation_request_handler() {
 	s.Require().Equal(links, returnedLinks)
 }
 
+func (s *HandlerTestSuite) Test_calls_find_references_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	locations := []Location{
+		{
+			URI: "file:///test_references.go",
+			Range: Range{
+				Start: Position{
+					Line:      310,
+					Character: 315,
+				},
+				End: Position{
+					Line:      311,
+					Character: 320,
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithFindReferencesHandler(
+			func(ctx *common.LSPContext, params *ReferencesParams) ([]Location, error) {
+				return locations, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	referencesParams := ReferencesParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_references.go",
+			},
+		},
+		Context: ReferenceContext{
+			IncludeDeclaration: true,
+		},
+	}
+
+	returnedLocations := []Location{}
+	err = clientLSPContext.Call(MethodFindReferences, referencesParams, &returnedLocations)
+	s.Require().NoError(err)
+	s.Require().Equal(locations, returnedLocations)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

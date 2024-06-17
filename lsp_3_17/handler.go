@@ -47,6 +47,7 @@ type Handler struct {
 	gotoDefinition     GotoDefinitionHandlerFunc
 	gotoTypeDefinition GotoTypeDefinitionHandlerFunc
 	gotoImplementation GotoImplementationHandlerFunc
+	findReferences     FindReferencesHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -214,6 +215,13 @@ func WithGotoTypeDefinitionHandler(handler GotoTypeDefinitionHandlerFunc) Handle
 func WithGotoImplementationHandler(handler GotoImplementationHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetGotoImplementationHandler(handler)
+	}
+}
+
+// WithFindReferencesHandler sets the handler for the `textDocument/references` request.
+func WithFindReferencesHandler(handler FindReferencesHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetFindReferencesHandler(handler)
 	}
 }
 
@@ -405,6 +413,14 @@ func (h *Handler) SetGotoImplementationHandler(handler GotoImplementationHandler
 	defer h.mu.Unlock()
 	h.gotoImplementation = handler
 	h.messageHandlers[MethodGotoImplementation] = createGotoImplementationHandler(h)
+}
+
+// SetFindReferencesHandler sets the handler for the `textDocument/references` request.
+func (h *Handler) SetFindReferencesHandler(handler FindReferencesHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.findReferences = handler
+	h.messageHandlers[MethodFindReferences] = createFindReferencesHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -807,6 +823,24 @@ func createGotoImplementationHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.gotoImplementation(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createFindReferencesHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.findReferences != nil {
+				validMethod = true
+				var params ReferencesParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.findReferences(ctx, &params)
 				}
 			}
 			return
