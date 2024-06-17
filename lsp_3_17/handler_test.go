@@ -1223,6 +1223,53 @@ func (s *HandlerTestSuite) Test_calls_prepare_call_hierarchy_request_handler() {
 	s.Require().Equal(items, returnedItems)
 }
 
+func (s *HandlerTestSuite) Test_calls_call_hierarchy_incoming_calls_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	calls := []CallHierarchyIncomingCall{
+		{
+			From: CallHierarchyItem{
+				URI: "file:///test_call_hierarchy_incoming_calls.go",
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithCallHierarchyIncomingCallsHandler(
+			func(ctx *common.LSPContext, params *CallHierarchyIncomingCallsParams) ([]CallHierarchyIncomingCall, error) {
+				return calls, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	callHierarchyIncomingCallsParams := CallHierarchyIncomingCallsParams{
+		Item: CallHierarchyItem{
+			URI: "file:///test_call_hierarchy_incoming_calls.go",
+		},
+	}
+
+	returnedCalls := []CallHierarchyIncomingCall{}
+	err = clientLSPContext.Call(
+		MethodCallHierarchyIncomingCalls,
+		callHierarchyIncomingCallsParams,
+		&returnedCalls,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(calls, returnedCalls)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

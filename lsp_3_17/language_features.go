@@ -137,3 +137,32 @@ type CallHierarchyItem struct {
 	// incoming calls or outgoing calls requests.
 	Data any `json:"data,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#callHierarchy_incomingCalls
+
+const MethodCallHierarchyIncomingCalls = Method("callHierarchy/incomingCalls")
+
+// CallHierarchyIncomingCallsHandlerFunc is the function signature for the callHierarchy/incomingCalls
+// request handler that can be registered for a language server.
+type CallHierarchyIncomingCallsHandlerFunc func(
+	ctx *common.LSPContext,
+	params *CallHierarchyIncomingCallsParams,
+) ([]CallHierarchyIncomingCall, error)
+
+// CallHierarchyIncomingCallsParams contains the callHierarchy/incomingCalls request parameters.
+type CallHierarchyIncomingCallsParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	Item CallHierarchyItem `json:"item"`
+}
+
+// CallHierarchyIncomingCall represents an incoming call within the call hierarchy.
+type CallHierarchyIncomingCall struct {
+	// The item that makes the call.
+	From CallHierarchyItem `json:"from"`
+
+	// The range at which at which the calls appears. This is relative to the caller
+	// denoted by [`this.from`](#CallHierarchyIncomingCall.from).
+	FromRanges []Range `json:"fromRanges"`
+}

@@ -43,12 +43,13 @@ type Handler struct {
 	notebookDocumentDidClose  NotebookDocumentDidCloseHandlerFunc
 
 	// Language Features
-	gotoDeclaration      GotoDeclarationHandlerFunc
-	gotoDefinition       GotoDefinitionHandlerFunc
-	gotoTypeDefinition   GotoTypeDefinitionHandlerFunc
-	gotoImplementation   GotoImplementationHandlerFunc
-	findReferences       FindReferencesHandlerFunc
-	prepareCallHierarchy PrepareCallHierarchyHandlerFunc
+	gotoDeclaration            GotoDeclarationHandlerFunc
+	gotoDefinition             GotoDefinitionHandlerFunc
+	gotoTypeDefinition         GotoTypeDefinitionHandlerFunc
+	gotoImplementation         GotoImplementationHandlerFunc
+	findReferences             FindReferencesHandlerFunc
+	prepareCallHierarchy       PrepareCallHierarchyHandlerFunc
+	callHierarchyIncomingCalls CallHierarchyIncomingCallsHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -230,6 +231,13 @@ func WithFindReferencesHandler(handler FindReferencesHandlerFunc) HandlerOption 
 func WithPrepareCallHierarchyHandler(handler PrepareCallHierarchyHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetPrepareCallHierarchyHandler(handler)
+	}
+}
+
+// WithCallHierarchyIncomingCallsHandler sets the handler for the `textDocument/incomingCalls` request.
+func WithCallHierarchyIncomingCallsHandler(handler CallHierarchyIncomingCallsHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetCallHierarchyIncomingCallsHandler(handler)
 	}
 }
 
@@ -437,6 +445,14 @@ func (h *Handler) SetPrepareCallHierarchyHandler(handler PrepareCallHierarchyHan
 	defer h.mu.Unlock()
 	h.prepareCallHierarchy = handler
 	h.messageHandlers[MethodPrepareCallHierarchy] = createPrepareCallHierarchyHandler(h)
+}
+
+// SetCallHierarchyIncomingCallsHandler sets the handler for the `textDocument/incomingCalls` request.
+func (h *Handler) SetCallHierarchyIncomingCallsHandler(handler CallHierarchyIncomingCallsHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.callHierarchyIncomingCalls = handler
+	h.messageHandlers[MethodCallHierarchyIncomingCalls] = createCallHierarchyIncomingCallsHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -875,6 +891,24 @@ func createPrepareCallHierarchyHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.prepareCallHierarchy(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createCallHierarchyIncomingCallsHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.callHierarchyIncomingCalls != nil {
+				validMethod = true
+				var params CallHierarchyIncomingCallsParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.callHierarchyIncomingCalls(ctx, &params)
 				}
 			}
 			return
