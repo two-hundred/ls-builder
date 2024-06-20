@@ -1644,6 +1644,68 @@ func (s *HandlerTestSuite) Test_calls_document_link_request_handler() {
 	s.Require().Equal(links, returnedLinks)
 }
 
+func (s *HandlerTestSuite) Test_calls_document_link_resolve_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	target := "file:///test_document_link_resolve.go"
+	resolvedLink := DocumentLink{
+		Range: Range{
+			Start: Position{
+				Line:      10,
+				Character: 5,
+			},
+			End: Position{
+				Line:      10,
+				Character: 15,
+			},
+		},
+		Target: &target,
+	}
+	serverHandler := NewHandler(
+		WithDocumentLinkResolveHandler(
+			func(ctx *common.LSPContext, params *DocumentLink) (*DocumentLink, error) {
+				return &resolvedLink, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	documentLinkResolveParams := DocumentLink{
+		Range: Range{
+			Start: Position{
+				Line:      15,
+				Character: 5,
+			},
+			End: Position{
+				Line:      15,
+				Character: 22,
+			},
+		},
+		Target: &target,
+	}
+
+	returnedLink := DocumentLink{}
+	err = clientLSPContext.Call(
+		MethodDocumentLinkResolve,
+		documentLinkResolveParams,
+		&returnedLink,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(resolvedLink, returnedLink)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

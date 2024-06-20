@@ -56,6 +56,7 @@ type Handler struct {
 	typeHierarchySubtypes      TypeHierarchySubtypesHandlerFunc
 	documentHighlight          DocumentHighlightHandlerFunc
 	documentLink               DocumentLinkHandlerFunc
+	documentLinkResolve        DocumentLinkResolveHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -286,6 +287,13 @@ func WithDocumentHighlightHandler(handler DocumentHighlightHandlerFunc) HandlerO
 func WithDocumentLinkHandler(handler DocumentLinkHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetDocumentLinkHandler(handler)
+	}
+}
+
+// WithDocumentLinkResolveHandler sets the handler for the `documentLink/resolve` request.
+func WithDocumentLinkResolveHandler(handler DocumentLinkResolveHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentLinkResolveHandler(handler)
 	}
 }
 
@@ -549,6 +557,14 @@ func (h *Handler) SetDocumentLinkHandler(handler DocumentLinkHandlerFunc) {
 	defer h.mu.Unlock()
 	h.documentLink = handler
 	h.messageHandlers[MethodDocumentLink] = createDocumentLinkHandler(h)
+}
+
+// SetDocumentLinkResolveHandler sets the handler for the `documentLink/resolve` request.
+func (h *Handler) SetDocumentLinkResolveHandler(handler DocumentLinkResolveHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentLinkResolve = handler
+	h.messageHandlers[MethodDocumentLinkResolve] = createDocumentLinkResolveHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1113,6 +1129,24 @@ func createDocumentLinkHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.documentLink(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentLinkResolveHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.documentLinkResolve != nil {
+				validMethod = true
+				var params DocumentLink
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentLinkResolve(ctx, &params)
 				}
 			}
 			return

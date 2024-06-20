@@ -368,3 +368,14 @@ type DocumentLink struct {
 	// DocumentLinkRequest and a DocumentLinkResolveRequest.
 	Data LSPAny `json:"data,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#documentLink_resolve
+
+const MethodDocumentLinkResolve = Method("documentLink/resolve")
+
+// DocumentLinkResolveHandlerFunc is the function signature for the documentLink/resolve
+// request handler that can be registered for a language server.
+type DocumentLinkResolveHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DocumentLink,
+) (*DocumentLink, error)
