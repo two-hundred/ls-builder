@@ -607,3 +607,36 @@ type FoldingRange struct {
 	// @since 3.17.0 - proposed
 	CollapsedText *string `json:"collapsedText,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_selectionRange
+
+const MethodSelectionRange = Method("textDocument/selectionRange")
+
+// SelectionRangeHandlerFunc is the function signature for the textDocument/selectionRange
+// request handler that can be registered for a language server.
+type SelectionRangeHandlerFunc func(
+	ctx *common.LSPContext,
+	params *SelectionRangeParams,
+) ([]SelectionRange, error)
+
+// SelectionRangeParams contains the textDocument/selectionRange request parameters.
+type SelectionRangeParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The positions inside the text document.
+	Positions []Position `json:"positions"`
+}
+
+// SelectionRange represents a selection range.
+type SelectionRange struct {
+	// The [range](#Range) of this selection range.
+	Range Range `json:"range"`
+
+	// The parent selection range containing this range.
+	// Therefore `parent.range` must contain `this.range`.
+	Parent *SelectionRange `json:"parent,omitempty"`
+}

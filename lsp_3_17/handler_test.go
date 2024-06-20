@@ -1940,6 +1940,78 @@ func (s *HandlerTestSuite) Test_calls_folding_range_request_handler() {
 	s.Require().Equal(foldingRanges, returnedFoldingRanges)
 }
 
+func (s *HandlerTestSuite) Test_calls_selection_range_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	selectionRanges := []SelectionRange{
+		{
+			Range: Range{
+				Start: Position{
+					Line:      10,
+					Character: 5,
+				},
+				End: Position{
+					Line:      10,
+					Character: 35,
+				},
+			},
+			Parent: &SelectionRange{
+				Range: Range{
+					Start: Position{
+						Line:      5,
+						Character: 2,
+					},
+					End: Position{
+						Line:      5,
+						Character: 45,
+					},
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithSelectionRangeHandler(
+			func(ctx *common.LSPContext, params *SelectionRangeParams) ([]SelectionRange, error) {
+				return selectionRanges, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	selectionRangeParams := SelectionRangeParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_selection_range.go",
+		},
+		Positions: []Position{
+			{
+				Line:      10,
+				Character: 5,
+			},
+		},
+	}
+
+	returnedSelectionRanges := []SelectionRange{}
+	err = clientLSPContext.Call(
+		MethodSelectionRange,
+		selectionRangeParams,
+		&returnedSelectionRanges,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(selectionRanges, returnedSelectionRanges)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

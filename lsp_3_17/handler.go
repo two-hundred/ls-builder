@@ -61,6 +61,7 @@ type Handler struct {
 	codeLens                   CodeLensHandlerFunc
 	codelensResolve            CodeLensResolveHandlerFunc
 	foldingRange               FoldingRangeHandlerFunc
+	selectionRange             SelectionRangeHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -326,6 +327,13 @@ func WithCodeLensResolveHandler(handler CodeLensResolveHandlerFunc) HandlerOptio
 func WithFoldingRangeHandler(handler FoldingRangeHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetFoldingRangeHandler(handler)
+	}
+}
+
+// WithSelectionRangeHandler sets the handler for the `textDocument/selectionRange` request.
+func WithSelectionRangeHandler(handler SelectionRangeHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetSelectionRangeHandler(handler)
 	}
 }
 
@@ -629,6 +637,14 @@ func (h *Handler) SetFoldingRangeHandler(handler FoldingRangeHandlerFunc) {
 	defer h.mu.Unlock()
 	h.foldingRange = handler
 	h.messageHandlers[MethodFoldingRange] = createFoldingRangeHandler(h)
+}
+
+// SetSelectionRangeHandler sets the handler for the `textDocument/selectionRange` request.
+func (h *Handler) SetSelectionRangeHandler(handler SelectionRangeHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.selectionRange = handler
+	h.messageHandlers[MethodSelectionRange] = createSelectionRangeHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1283,6 +1299,24 @@ func createFoldingRangeHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.foldingRange(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createSelectionRangeHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.selectionRange != nil {
+				var params SelectionRangeParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.selectionRange(ctx, &params)
 				}
 			}
 			return
