@@ -53,6 +53,7 @@ type Handler struct {
 	callHierarchyOutgoingCalls CallHierarchyOutgoingCallsHandlerFunc
 	prepareTypeHierarchy       PrepareTypeHierarchyHandlerFunc
 	typeHierarchySupertypes    TypeHierarchySupertypesHandlerFunc
+	typeHierarchySubtypes      TypeHierarchySubtypesHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -262,6 +263,13 @@ func WithPrepareTypeHierarchyHandler(handler PrepareTypeHierarchyHandlerFunc) Ha
 func WithTypeHierarchySupertypesHandler(handler TypeHierarchySupertypesHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetTypeHierarchySupertypesHandler(handler)
+	}
+}
+
+// WithTypeHierarchySubtypesHandler sets the handler for the `typeHierarchy/subtypes` request.
+func WithTypeHierarchySubtypesHandler(handler TypeHierarchySubtypesHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetTypeHierarchySubtypesHandler(handler)
 	}
 }
 
@@ -501,6 +509,14 @@ func (h *Handler) SetTypeHierarchySupertypesHandler(handler TypeHierarchySuperty
 	defer h.mu.Unlock()
 	h.typeHierarchySupertypes = handler
 	h.messageHandlers[MethodTypeHierarchySupertypes] = createTypeHierarchySupertypesHandler(h)
+}
+
+// SetTypeHierarchySubtypesHandler sets the handler for the `typeHierarchy/subtypes` request.
+func (h *Handler) SetTypeHierarchySubtypesHandler(handler TypeHierarchySubtypesHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.typeHierarchySubtypes = handler
+	h.messageHandlers[MethodTypeHierarchySubtypes] = createTypeHierarchySubtypesHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1011,6 +1027,24 @@ func createTypeHierarchySupertypesHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.typeHierarchySupertypes(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createTypeHierarchySubtypesHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.typeHierarchySubtypes != nil {
+				validMethod = true
+				var params TypeHierarchySubtypesParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.typeHierarchySubtypes(ctx, &params)
 				}
 			}
 			return
