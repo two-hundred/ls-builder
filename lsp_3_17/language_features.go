@@ -283,3 +283,43 @@ type TypeHierarchySubtypesParams struct {
 
 	Item TypeHierarchyItem `json:"item"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentHighlight
+
+const MethodDocumentHighlight = Method("textDocument/documentHighlight")
+
+// DocumentHighlightHandlerFunc is the function signature for the textDocument/documentHighlight
+// request handler that can be registered for a language server.
+type DocumentHighlightHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DocumentHighlightParams,
+) ([]DocumentHighlight, error)
+
+// DocumentHighlightParams contains the textDocument/documentHighlight request parameters.
+type DocumentHighlightParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+	PartialResultParams
+}
+
+// DocumentHighlight represents a document highlight.
+type DocumentHighlight struct {
+	// The range this highlight applies to.
+	Range Range `json:"range"`
+
+	// The highlight kind, default is DocumentHighlightKind.Text.
+	Kind *DocumentHighlightKind `json:"kind,omitempty"`
+}
+
+type DocumentHighlightKind = Integer
+
+var (
+	// DocumentHighlightKindText is for a textual occurrence.
+	DocumentHighlightKindText DocumentHighlightKind = 1
+
+	// DocumentHighlightKindRead is for read-access of a symbol, like reading a variable.
+	DocumentHighlightKindRead DocumentHighlightKind = 2
+
+	// DocumentHighlightKindWrite is for write-access of a symbol, like writing to a variable.
+	DocumentHighlightKindWrite DocumentHighlightKind = 3
+)

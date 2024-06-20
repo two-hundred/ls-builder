@@ -54,6 +54,7 @@ type Handler struct {
 	prepareTypeHierarchy       PrepareTypeHierarchyHandlerFunc
 	typeHierarchySupertypes    TypeHierarchySupertypesHandlerFunc
 	typeHierarchySubtypes      TypeHierarchySubtypesHandlerFunc
+	documentHighlight          DocumentHighlightHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -270,6 +271,13 @@ func WithTypeHierarchySupertypesHandler(handler TypeHierarchySupertypesHandlerFu
 func WithTypeHierarchySubtypesHandler(handler TypeHierarchySubtypesHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetTypeHierarchySubtypesHandler(handler)
+	}
+}
+
+// WithDocumentHighlightHandler sets the handler for the `textDocument/documentHighlight` request.
+func WithDocumentHighlightHandler(handler DocumentHighlightHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentHighlightHandler(handler)
 	}
 }
 
@@ -517,6 +525,14 @@ func (h *Handler) SetTypeHierarchySubtypesHandler(handler TypeHierarchySubtypesH
 	defer h.mu.Unlock()
 	h.typeHierarchySubtypes = handler
 	h.messageHandlers[MethodTypeHierarchySubtypes] = createTypeHierarchySubtypesHandler(h)
+}
+
+// SetDocumentHighlightHandler sets the handler for the `textDocument/documentHighlight` request.
+func (h *Handler) SetDocumentHighlightHandler(handler DocumentHighlightHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentHighlight = handler
+	h.messageHandlers[MethodDocumentHighlight] = createDocumentHighlightHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1045,6 +1061,24 @@ func createTypeHierarchySubtypesHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.typeHierarchySubtypes(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentHighlightHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.documentHighlight != nil {
+				validMethod = true
+				var params DocumentHighlightParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentHighlight(ctx, &params)
 				}
 			}
 			return

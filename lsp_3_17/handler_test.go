@@ -1518,6 +1518,73 @@ func (s *HandlerTestSuite) Test_calls_type_hierarchy_subtypes_request_handler() 
 	s.Require().Equal(items, returnedItems)
 }
 
+func (s *HandlerTestSuite) Test_calls_document_highlight_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	highlights := []DocumentHighlight{
+		{
+			Range: Range{
+				Start: Position{
+					Line:      10,
+					Character: 5,
+				},
+				End: Position{
+					Line:      10,
+					Character: 15,
+				},
+			},
+			Kind: &DocumentHighlightKindText,
+		},
+	}
+	serverHandler := NewHandler(
+		WithDocumentHighlightHandler(
+			func(ctx *common.LSPContext, params *DocumentHighlightParams) ([]DocumentHighlight, error) {
+				return highlights, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	workDoneToken := "test-token-"
+	documentHighlightParams := DocumentHighlightParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_document_highlight.go",
+			},
+			Position: Position{
+				Line:      1,
+				Character: 5,
+			},
+		},
+		WorkDoneProgressParams: WorkDoneProgressParams{
+			WorkDoneToken: &IntOrString{
+				StrVal: &workDoneToken,
+			},
+		},
+	}
+
+	returnedHighlights := []DocumentHighlight{}
+	err = clientLSPContext.Call(
+		MethodDocumentHighlight,
+		documentHighlightParams,
+		&returnedHighlights,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(highlights, returnedHighlights)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
