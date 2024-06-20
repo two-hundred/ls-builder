@@ -245,3 +245,22 @@ type TypeHierarchyItem struct {
 	// resolving supertypes and subtypes.
 	Data LSPAny `json:"data,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#typeHierarchy_supertypes
+
+const MethodTypeHierarchySupertypes = Method("typeHierarchy/supertypes")
+
+// TypeHierarchySupertypesHandlerFunc is the function signature for the typeHierarchy/supertypes
+// request handler that can be registered for a language server.
+type TypeHierarchySupertypesHandlerFunc func(
+	ctx *common.LSPContext,
+	params *TypeHierarchySupertypesParams,
+) ([]TypeHierarchyItem, error)
+
+// TypeHierarchySupertypesParams contains the typeHierarchy/supertypes request parameters.
+type TypeHierarchySupertypesParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	Item TypeHierarchyItem `json:"item"`
+}

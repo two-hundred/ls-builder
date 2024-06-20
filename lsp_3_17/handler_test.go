@@ -1398,6 +1398,66 @@ func (s *HandlerTestSuite) Test_calls_prepare_type_hierarchy_request_handler() {
 	s.Require().Equal(items, returnedItems)
 }
 
+func (s *HandlerTestSuite) Test_calls_type_hierarchy_supertypes_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	items := []TypeHierarchyItem{
+		{
+			Name: "TestType",
+			Kind: SymbolKindArray,
+			URI:  "file:///test_type_hierarchy_supertypes.go",
+			Range: Range{
+				Start: Position{
+					Line:      420,
+					Character: 140,
+				},
+				End: Position{
+					Line:      420,
+					Character: 170,
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithTypeHierarchySupertypesHandler(
+			func(ctx *common.LSPContext, params *TypeHierarchySupertypesParams) ([]TypeHierarchyItem, error) {
+				return items, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	workDoneToken := "test-token-supertypes"
+	typeHierarchySupertypesParams := TypeHierarchySupertypesParams{
+		WorkDoneProgressParams: WorkDoneProgressParams{
+			WorkDoneToken: &IntOrString{
+				StrVal: &workDoneToken,
+			},
+		},
+	}
+
+	returnedItems := []TypeHierarchyItem{}
+	err = clientLSPContext.Call(
+		MethodTypeHierarchySupertypes,
+		typeHierarchySupertypesParams,
+		&returnedItems,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(items, returnedItems)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
