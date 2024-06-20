@@ -535,3 +535,14 @@ type CodeLens struct {
 	// a code lens and a code lens resolve request.
 	Data LSPAny `json:"data,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#codeLens_resolve
+
+const MethodCodeLensResolve = Method("codeLens/resolve")
+
+// CodeLensResolveHandlerFunc is the function signature for the codeLens/resolve
+// request handler that can be registered for a language server.
+type CodeLensResolveHandlerFunc func(
+	ctx *common.LSPContext,
+	params *CodeLens,
+) (*CodeLens, error)

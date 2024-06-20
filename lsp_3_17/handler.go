@@ -59,6 +59,7 @@ type Handler struct {
 	documentLinkResolve        DocumentLinkResolveHandlerFunc
 	hover                      HoverHandlerFunc
 	codeLens                   CodeLensHandlerFunc
+	codelensResolve            CodeLensResolveHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -310,6 +311,13 @@ func WithHoverHandler(handler HoverHandlerFunc) HandlerOption {
 func WithCodeLensHandler(handler CodeLensHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetCodeLensHandler(handler)
+	}
+}
+
+// WithCodeLensResolveHandler sets the handler for the `codeLens/resolve` request.
+func WithCodeLensResolveHandler(handler CodeLensResolveHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetCodeLensResolveHandler(handler)
 	}
 }
 
@@ -597,6 +605,14 @@ func (h *Handler) SetCodeLensHandler(handler CodeLensHandlerFunc) {
 	defer h.mu.Unlock()
 	h.codeLens = handler
 	h.messageHandlers[MethodCodeLens] = createCodeLensHandler(h)
+}
+
+// SetCodeLensResolveHandler sets the handler for the `codeLens/resolve` request.
+func (h *Handler) SetCodeLensResolveHandler(handler CodeLensResolveHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.codelensResolve = handler
+	h.messageHandlers[MethodCodeLensResolve] = createCodeLensResolveHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1215,6 +1231,24 @@ func createCodeLensHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.codeLens(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createCodeLensResolveHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.codelensResolve != nil {
+				var params CodeLens
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.codelensResolve(ctx, &params)
 				}
 			}
 			return
