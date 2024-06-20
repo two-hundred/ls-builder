@@ -435,21 +435,21 @@ func (h *Hover) UnmarshalJSON(data []byte) error {
 	err := json.Unmarshal(value.Contents, &markupContentVal)
 	if err == nil && markupContentVal.Kind != "" {
 		h.Contents = markupContentVal
-	} else {
-		var markedStringVal MarkedString
-		if err := json.Unmarshal(value.Contents, &markedStringVal); err == nil {
-			h.Contents = markedStringVal
-		} else {
-			var markedStringArrayVal []MarkedString
-			if err := json.Unmarshal(value.Contents, &markedStringArrayVal); err == nil {
-				h.Contents = markedStringArrayVal
-			} else {
-				return err
-			}
-		}
+		return nil
 	}
 
-	return nil
+	var markedStringVal MarkedString
+	if err = json.Unmarshal(value.Contents, &markedStringVal); err == nil {
+		h.Contents = markedStringVal
+		return nil
+	}
+
+	var markedStringArrayVal []MarkedString
+	if err = json.Unmarshal(value.Contents, &markedStringArrayVal); err == nil {
+		h.Contents = markedStringArrayVal
+	}
+
+	return err
 }
 
 // MarkedString can be used to render human readable text. It is either a
