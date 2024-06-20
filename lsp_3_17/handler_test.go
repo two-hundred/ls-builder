@@ -1329,6 +1329,75 @@ func (s *HandlerTestSuite) Test_calls_call_hierarchy_outgoing_calls_request_hand
 	s.Require().Equal(calls, returnedCalls)
 }
 
+func (s *HandlerTestSuite) Test_calls_prepare_type_hierarchy_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	items := []TypeHierarchyItem{
+		{
+			Name: "TestType",
+			Kind: SymbolKindArray,
+			URI:  "file:///test_prepare_type_hierarchy.go",
+			Range: Range{
+				Start: Position{
+					Line:      410,
+					Character: 415,
+				},
+				End: Position{
+					Line:      411,
+					Character: 420,
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithPrepareTypeHierarchyHandler(
+			func(ctx *common.LSPContext, params *TypeHierarchyPrepareParams) ([]TypeHierarchyItem, error) {
+				return items, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	workDoneToken := "test-token"
+	prepareTypeHierarchyParams := TypeHierarchyPrepareParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_prepare_type_hierarchy.go",
+			},
+			Position: Position{
+				Line:      1,
+				Character: 5,
+			},
+		},
+		WorkDoneProgressParams: WorkDoneProgressParams{
+			WorkDoneToken: &IntOrString{
+				StrVal: &workDoneToken,
+			},
+		},
+	}
+
+	returnedItems := []TypeHierarchyItem{}
+	err = clientLSPContext.Call(
+		MethodPrepareTypeHierarchy,
+		prepareTypeHierarchyParams,
+		&returnedItems,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(items, returnedItems)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

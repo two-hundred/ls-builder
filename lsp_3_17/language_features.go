@@ -195,3 +195,53 @@ type CallHierarchyOutgoingCall struct {
 	// the caller, e.g the item passed to `callHierarchy/outgoingCalls` request.
 	FromRanges []Range `json:"fromRanges"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_prepareTypeHierarchy
+
+const MethodPrepareTypeHierarchy = Method("textDocument/prepareTypeHierarchy")
+
+// PrepareTypeHierarchyHandlerFunc is the function signature for the textDocument/prepareTypeHierarchy
+// request handler that can be registered for a language server.
+type PrepareTypeHierarchyHandlerFunc func(
+	ctx *common.LSPContext,
+	params *TypeHierarchyPrepareParams,
+) ([]TypeHierarchyItem, error)
+
+// TypeHierarchyPrepareParams contains the textDocument/prepareTypeHierarchy request parameters.
+type TypeHierarchyPrepareParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+}
+
+// TypeHierarchyItem represents an item within the type hierarchy.
+type TypeHierarchyItem struct {
+	// The name of this item.
+	Name string `json:"name"`
+
+	// The kind of this item.
+	Kind SymbolKind `json:"kind"`
+
+	// Tags for this item.
+	Tags []SymbolTag `json:"tags,omitempty"`
+
+	// More detail for this item, e.g. the signature of a function.
+	Detail *string `json:"detail,omitempty"`
+
+	// The resource identifier of this item.
+	URI DocumentURI `json:"uri"`
+
+	// The range enclosing this symbol not including leading/trailing whitespace
+	// but everything else, e.g. comments and code.
+	Range Range `json:"range"`
+
+	// The range that should be selected and revealed when this symbol is being
+	// picked, e.g. the name of a function. Must be contained by the
+	// [`range`](#TypeHierarchyItem.range).
+	SelectionRange Range `json:"selectionRange"`
+
+	// A data entry field that is preserved between a type hierarchy prepare and
+	// supertypes or subtypes requests. It could also be used to identify the
+	// type hierarchy in the server, helping improve the performance on
+	// resolving supertypes and subtypes.
+	Data LSPAny `json:"data,omitempty"`
+}

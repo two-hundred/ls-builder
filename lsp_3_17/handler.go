@@ -51,6 +51,7 @@ type Handler struct {
 	prepareCallHierarchy       PrepareCallHierarchyHandlerFunc
 	callHierarchyIncomingCalls CallHierarchyIncomingCallsHandlerFunc
 	callHierarchyOutgoingCalls CallHierarchyOutgoingCallsHandlerFunc
+	prepareTypeHierarchy       PrepareTypeHierarchyHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -246,6 +247,13 @@ func WithCallHierarchyIncomingCallsHandler(handler CallHierarchyIncomingCallsHan
 func WithCallHierarchyOutgoingCallsHandler(handler CallHierarchyOutgoingCallsHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetCallHierarchyOutgoingCallsHandler(handler)
+	}
+}
+
+// WithPrepareTypeHierarchyHandler sets the handler for the `textDocument/prepareTypeHierarchy` request.
+func WithPrepareTypeHierarchyHandler(handler PrepareTypeHierarchyHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetPrepareTypeHierarchyHandler(handler)
 	}
 }
 
@@ -469,6 +477,14 @@ func (h *Handler) SetCallHierarchyOutgoingCallsHandler(handler CallHierarchyOutg
 	defer h.mu.Unlock()
 	h.callHierarchyOutgoingCalls = handler
 	h.messageHandlers[MethodCallHierarchyOutgoingCalls] = createCallHierarchyOutgoingCallsHandler(h)
+}
+
+// SetPrepareTypeHierarchyHandler sets the handler for the `textDocument/prepareTypeHierarchy` request.
+func (h *Handler) SetPrepareTypeHierarchyHandler(handler PrepareTypeHierarchyHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.prepareTypeHierarchy = handler
+	h.messageHandlers[MethodPrepareTypeHierarchy] = createPrepareTypeHierarchyHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -943,6 +959,24 @@ func createCallHierarchyOutgoingCallsHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.callHierarchyOutgoingCalls(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createPrepareTypeHierarchyHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.prepareTypeHierarchy != nil {
+				validMethod = true
+				var params TypeHierarchyPrepareParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.prepareTypeHierarchy(ctx, &params)
 				}
 			}
 			return
