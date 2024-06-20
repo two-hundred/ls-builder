@@ -323,3 +323,48 @@ var (
 	// DocumentHighlightKindWrite is for write-access of a symbol, like writing to a variable.
 	DocumentHighlightKindWrite DocumentHighlightKind = 3
 )
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentLink
+
+const MethodDocumentLink = Method("textDocument/documentLink")
+
+// DocumentLinkHandlerFunc is the function signature for the textDocument/documentLink
+// request handler that can be registered for a language server.
+type DocumentLinkHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DocumentLinkParams,
+) ([]DocumentLink, error)
+
+// DocumentLinkParams contains the textDocument/documentLink request parameters.
+type DocumentLinkParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// The document to provide document links for.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// DocumentLink represents a document link.
+// This is range in a text document that links to an internal or
+// external resource, like another text document or a web site.
+type DocumentLink struct {
+	// The range this link applies to.
+	Range Range `json:"range"`
+
+	// The uri this link points to. If missing a resolve request is sent later.
+	Target *DocumentURI `json:"target,omitempty"`
+
+	// The tooltip text when you hover over this link.
+	//
+	// If a tooltip is provided, is will be displayed in a string that includes
+	// instructions on how to trigger the link, such as `{0} (ctrl + click)`.
+	// The specific instructions vary depending on OS, user settings, and
+	// localization.
+	//
+	// @since 3.15.0
+	Tooltip *string `json:"tooltip,omitempty"`
+
+	// A data entry field that is preserved on a document link between a
+	// DocumentLinkRequest and a DocumentLinkResolveRequest.
+	Data LSPAny `json:"data,omitempty"`
+}

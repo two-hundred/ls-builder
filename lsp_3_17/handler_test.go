@@ -1557,7 +1557,7 @@ func (s *HandlerTestSuite) Test_calls_document_highlight_request_handler() {
 
 	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
 
-	workDoneToken := "test-token-"
+	workDoneToken := "test-token-document-highlight"
 	documentHighlightParams := DocumentHighlightParams{
 		TextDocumentPositionParams: TextDocumentPositionParams{
 			TextDocument: TextDocumentIdentifier{
@@ -1583,6 +1583,65 @@ func (s *HandlerTestSuite) Test_calls_document_highlight_request_handler() {
 	)
 	s.Require().NoError(err)
 	s.Require().Equal(highlights, returnedHighlights)
+}
+
+func (s *HandlerTestSuite) Test_calls_document_link_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	target := "file:///test_document_link.go"
+	links := []DocumentLink{
+		{
+			Range: Range{
+				Start: Position{
+					Line:      10,
+					Character: 5,
+				},
+				End: Position{
+					Line:      10,
+					Character: 15,
+				},
+			},
+			Target: &target,
+		},
+	}
+	serverHandler := NewHandler(
+		WithDocumentLinkHandler(
+			func(ctx *common.LSPContext, params *DocumentLinkParams) ([]DocumentLink, error) {
+				return links, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	workDoneToken := "test-token-document-link"
+	documentLinkParams := DocumentLinkParams{
+		WorkDoneProgressParams: WorkDoneProgressParams{
+			WorkDoneToken: &IntOrString{
+				StrVal: &workDoneToken,
+			},
+		},
+	}
+
+	returnedLinks := []DocumentLink{}
+	err = clientLSPContext.Call(
+		MethodDocumentLink,
+		documentLinkParams,
+		&returnedLinks,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(links, returnedLinks)
 }
 
 func TestHandlerTestSuite(t *testing.T) {

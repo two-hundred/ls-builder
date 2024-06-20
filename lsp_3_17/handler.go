@@ -55,6 +55,7 @@ type Handler struct {
 	typeHierarchySupertypes    TypeHierarchySupertypesHandlerFunc
 	typeHierarchySubtypes      TypeHierarchySubtypesHandlerFunc
 	documentHighlight          DocumentHighlightHandlerFunc
+	documentLink               DocumentLinkHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -278,6 +279,13 @@ func WithTypeHierarchySubtypesHandler(handler TypeHierarchySubtypesHandlerFunc) 
 func WithDocumentHighlightHandler(handler DocumentHighlightHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetDocumentHighlightHandler(handler)
+	}
+}
+
+// WithDocumentLinkHandler sets the handler for the `textDocument/documentLink` request.
+func WithDocumentLinkHandler(handler DocumentLinkHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentLinkHandler(handler)
 	}
 }
 
@@ -533,6 +541,14 @@ func (h *Handler) SetDocumentHighlightHandler(handler DocumentHighlightHandlerFu
 	defer h.mu.Unlock()
 	h.documentHighlight = handler
 	h.messageHandlers[MethodDocumentHighlight] = createDocumentHighlightHandler(h)
+}
+
+// SetDocumentLinkHandler sets the handler for the `textDocument/documentLink` request.
+func (h *Handler) SetDocumentLinkHandler(handler DocumentLinkHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentLink = handler
+	h.messageHandlers[MethodDocumentLink] = createDocumentLinkHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1079,6 +1095,24 @@ func createDocumentHighlightHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.documentHighlight(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentLinkHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.documentLink != nil {
+				validMethod = true
+				var params DocumentLinkParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentLink(ctx, &params)
 				}
 			}
 			return
