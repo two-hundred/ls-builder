@@ -546,3 +546,7 @@ type CodeLensResolveHandlerFunc func(
 	ctx *common.LSPContext,
 	params *CodeLens,
 ) (*CodeLens, error)
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#codeLens_refresh
+
+const MethodCodeLensRefresh = Method("workspace/codeLens/refresh")

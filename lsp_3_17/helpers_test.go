@@ -47,6 +47,7 @@ func testClientCapabilities(s *suite.Suite, tests []clientCapabilityFixture) {
 
 type testConnectionsContainer struct {
 	clientReceivedMessages []*json.RawMessage
+	clientReceivedMethods  []string
 	clientConn             *jsonrpc2.Conn
 	serverConn             *jsonrpc2.Conn
 	mu                     sync.Mutex
@@ -91,6 +92,7 @@ func createTestConnectionsContainer(serverHandler jsonrpc2.Handler) *testConnect
 
 	container := &testConnectionsContainer{
 		clientReceivedMessages: []*json.RawMessage{},
+		clientReceivedMethods:  []string{},
 	}
 
 	clientHandler := jsonrpc2.HandlerWithError(
@@ -102,6 +104,7 @@ func createTestConnectionsContainer(serverHandler jsonrpc2.Handler) *testConnect
 			container.mu.Lock()
 			defer container.mu.Unlock()
 			container.clientReceivedMessages = append(container.clientReceivedMessages, req.Params)
+			container.clientReceivedMethods = append(container.clientReceivedMethods, req.Method)
 			return nil, nil
 		},
 	)

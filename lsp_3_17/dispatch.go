@@ -50,3 +50,8 @@ func (d *Dispatcher) UnregisterCapability(params UnregistrationParams) error {
 func (d *Dispatcher) LogTrace(params LogTraceParams) error {
 	return d.ctx.Notify(MethodLogTrace, params)
 }
+
+// CodeLensRefresh requests the client to refresh all code lenses.
+func (d *Dispatcher) CodeLensRefresh() error {
+	return d.ctx.Call(MethodCodeLensRefresh, nil, nil)
+}

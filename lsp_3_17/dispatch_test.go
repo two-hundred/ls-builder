@@ -187,6 +187,29 @@ func (s *DispatchTestSuite) Test_server_sends_deregister_capability_message() {
 	s.Require().Equal(deregisterCapabilityParams, message)
 }
 
+func (s *DispatchTestSuite) Test_server_sends_refresh_code_lens_message() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	err := dispatcher.CodeLensRefresh()
+	s.Require().NoError(err)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+	// Verify that the client received the refresh message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+	// Verify the method name.
+	s.Require().Len(container.clientReceivedMethods, 1)
+	s.Require().Equal(MethodCodeLensRefresh, container.clientReceivedMethods[0])
+}
+
 func TestDispatchTestSuite(t *testing.T) {
 	suite.Run(t, new(DispatchTestSuite))
 }
