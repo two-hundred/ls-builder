@@ -2012,6 +2012,64 @@ func (s *HandlerTestSuite) Test_calls_selection_range_request_handler() {
 	s.Require().Equal(selectionRanges, returnedSelectionRanges)
 }
 
+func (s *HandlerTestSuite) Test_calls_document_symbol_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	symbols := []DocumentSymbol{
+		{
+			Name: "TestSymbol",
+			Kind: SymbolKindArray,
+			Range: Range{
+				Start: Position{
+					Line:      10,
+					Character: 5,
+				},
+			},
+			SelectionRange: Range{
+				Start: Position{
+					Line:      10,
+					Character: 5,
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithDocumentSymbolHandler(
+			func(ctx *common.LSPContext, params *DocumentSymbolParams) (any, error) {
+				return symbols, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	documentSymbolParams := DocumentSymbolParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_selection_range.go",
+		},
+	}
+
+	returnedDocumentSymbols := []DocumentSymbol{}
+	err = clientLSPContext.Call(
+		MethodDocumentSymbol,
+		documentSymbolParams,
+		&returnedDocumentSymbols,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(symbols, returnedDocumentSymbols)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

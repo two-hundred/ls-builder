@@ -62,6 +62,7 @@ type Handler struct {
 	codelensResolve            CodeLensResolveHandlerFunc
 	foldingRange               FoldingRangeHandlerFunc
 	selectionRange             SelectionRangeHandlerFunc
+	documentSymbol             DocumentSymbolHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -334,6 +335,13 @@ func WithFoldingRangeHandler(handler FoldingRangeHandlerFunc) HandlerOption {
 func WithSelectionRangeHandler(handler SelectionRangeHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetSelectionRangeHandler(handler)
+	}
+}
+
+// WithDocumentSymbolHandler sets the handler for the `textDocument/documentSymbol` request.
+func WithDocumentSymbolHandler(handler DocumentSymbolHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentSymbolHandler(handler)
 	}
 }
 
@@ -645,6 +653,14 @@ func (h *Handler) SetSelectionRangeHandler(handler SelectionRangeHandlerFunc) {
 	defer h.mu.Unlock()
 	h.selectionRange = handler
 	h.messageHandlers[MethodSelectionRange] = createSelectionRangeHandler(h)
+}
+
+// SetDocumentSymbolHandler sets the handler for the `textDocument/documentSymbol` request.
+func (h *Handler) SetDocumentSymbolHandler(handler DocumentSymbolHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentSymbol = handler
+	h.messageHandlers[MethodDocumentSymbol] = createDocumentSymbolHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1317,6 +1333,24 @@ func createSelectionRangeHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.selectionRange(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentSymbolHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.documentSymbol != nil {
+				var params DocumentSymbolParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentSymbol(ctx, &params)
 				}
 			}
 			return
