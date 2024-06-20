@@ -57,6 +57,7 @@ type Handler struct {
 	documentHighlight          DocumentHighlightHandlerFunc
 	documentLink               DocumentLinkHandlerFunc
 	documentLinkResolve        DocumentLinkResolveHandlerFunc
+	hover                      HoverHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -294,6 +295,13 @@ func WithDocumentLinkHandler(handler DocumentLinkHandlerFunc) HandlerOption {
 func WithDocumentLinkResolveHandler(handler DocumentLinkResolveHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetDocumentLinkResolveHandler(handler)
+	}
+}
+
+// WithHoverHandler sets the handler for the `textDocument/hover` request.
+func WithHoverHandler(handler HoverHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetHoverHandler(handler)
 	}
 }
 
@@ -565,6 +573,14 @@ func (h *Handler) SetDocumentLinkResolveHandler(handler DocumentLinkResolveHandl
 	defer h.mu.Unlock()
 	h.documentLinkResolve = handler
 	h.messageHandlers[MethodDocumentLinkResolve] = createDocumentLinkResolveHandler(h)
+}
+
+// SetHoverHandler sets the handler for the `textDocument/hover` request.
+func (h *Handler) SetHoverHandler(handler HoverHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.hover = handler
+	h.messageHandlers[MethodHover] = createHoverHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1147,6 +1163,24 @@ func createDocumentLinkResolveHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.documentLinkResolve(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createHoverHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.hover != nil {
+				var params HoverParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.hover(ctx, &params)
 				}
 			}
 			return

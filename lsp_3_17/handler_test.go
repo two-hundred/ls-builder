@@ -1706,6 +1706,60 @@ func (s *HandlerTestSuite) Test_calls_document_link_resolve_request_handler() {
 	s.Require().Equal(resolvedLink, returnedLink)
 }
 
+func (s *HandlerTestSuite) Test_calls_hover_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	hover := Hover{
+		Contents: MarkedString{
+			Value: MarkedStringLanguage{
+				Language: "go",
+				Value:    "package main",
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithHoverHandler(
+			func(ctx *common.LSPContext, params *HoverParams) (*Hover, error) {
+				return &hover, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	workDoneToken := "test-token-hover"
+	hoverParams := HoverParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_hover.go",
+			},
+		},
+		WorkDoneProgressParams: WorkDoneProgressParams{
+			WorkDoneToken: &IntOrString{StrVal: &workDoneToken},
+		},
+	}
+
+	returnedHover := Hover{}
+	err = clientLSPContext.Call(
+		MethodHover,
+		hoverParams,
+		&returnedHover,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(hover, returnedHover)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

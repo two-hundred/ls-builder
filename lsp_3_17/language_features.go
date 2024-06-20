@@ -1,6 +1,10 @@
 package lsp
 
-import "github.com/two-hundred/ls-builder/common"
+import (
+	"encoding/json"
+
+	"github.com/two-hundred/ls-builder/common"
+)
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_declaration
 
@@ -379,3 +383,117 @@ type DocumentLinkResolveHandlerFunc func(
 	ctx *common.LSPContext,
 	params *DocumentLink,
 ) (*DocumentLink, error)
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover
+
+const MethodHover = Method("textDocument/hover")
+
+// HoverHandlerFunc is the function signature for the textDocument/hover
+// request handler that can be registered for a language server.
+type HoverHandlerFunc func(
+	ctx *common.LSPContext,
+	params *HoverParams,
+) (*Hover, error)
+
+// HoverParams contains the textDocument/hover request parameters.
+type HoverParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+}
+
+// Hover represents the result of a hover request.
+type Hover struct {
+	// The hover's content.
+	//
+	// MarkedString | []MarkedString | MarkupContent
+	Contents any `json:"contents"`
+
+	// An optional range is a range inside a text document
+	// that is used to visualize a hover, e.g. by changing
+	// the background color.
+	Range *Range `json:"range,omitempty"`
+}
+
+type hoverIntermediary struct {
+	// MarkedString | []MarkedString | MarkupContent
+	Contents json.RawMessage `json:"contents"`
+	Range    *Range          `json:"range,omitempty"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (h *Hover) UnmarshalJSON(data []byte) error {
+
+	var value hoverIntermediary
+
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	h.Range = value.Range
+
+	var markupContentVal MarkupContent
+	err := json.Unmarshal(value.Contents, &markupContentVal)
+	if err == nil && markupContentVal.Kind != "" {
+		h.Contents = markupContentVal
+	} else {
+		var markedStringVal MarkedString
+		if err := json.Unmarshal(value.Contents, &markedStringVal); err == nil {
+			h.Contents = markedStringVal
+		} else {
+			var markedStringArrayVal []MarkedString
+			if err := json.Unmarshal(value.Contents, &markedStringArrayVal); err == nil {
+				h.Contents = markedStringArrayVal
+			} else {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// MarkedString can be used to render human readable text. It is either a
+// markdown string or a code-block that provides a language and a code snippet.
+// The language identifier is semantically equal to the optional language
+// identifier in fenced code blocks in GitHub issues.
+//
+// The pair of a language and a value is an equivalent to markdown:
+// ```${language}
+// ${value}
+// ```
+//
+// Note that markdown strings will be sanitized - that means html will be
+// escaped.
+//
+// @deprecated use MarkupContent instead.
+type MarkedString struct {
+	Value any // string | MarkedStringLanguage
+}
+
+// Fulfils the json.Marshaler interface.
+func (s MarkedString) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.Value)
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (s *MarkedString) UnmarshalJSON(data []byte) error {
+	var strVal string
+	if err := json.Unmarshal(data, &strVal); err == nil {
+		s.Value = strVal
+		return nil
+	} else {
+		var markedStringLanguageVal MarkedStringLanguage
+		if err := json.Unmarshal(data, &markedStringLanguageVal); err == nil {
+			s.Value = markedStringLanguageVal
+			return nil
+		}
+	}
+
+	return nil
+}
+
+// MarkedStringLanguage is a pair of a language and a value for a MarkedString.
+type MarkedStringLanguage struct {
+	Language string `json:"language"`
+	Value    string `json:"value"`
+}
