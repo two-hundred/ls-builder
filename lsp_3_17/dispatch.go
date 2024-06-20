@@ -55,3 +55,13 @@ func (d *Dispatcher) LogTrace(params LogTraceParams) error {
 func (d *Dispatcher) CodeLensRefresh() error {
 	return d.ctx.Call(MethodCodeLensRefresh, nil, nil)
 }
+
+// SemanticTokensRefresh requests the client to refresh the editors for which
+// this server provides semantic tokens.
+// As a result the client should ask the server to recompute the semantic tokens for these editors.
+// This is useful if a server detects a project wide configuration change which requires a
+// re-calculation of all semantic tokens. Note that the client still has the freedom
+// to delay the re-calculation of the semantic tokens if for example an editor is currently not visible.
+func (d *Dispatcher) SemanticTokensRefresh() error {
+	return d.ctx.Call(MethodSemanticTokensRefresh, nil, nil)
+}

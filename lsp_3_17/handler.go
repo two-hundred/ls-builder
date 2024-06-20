@@ -63,6 +63,9 @@ type Handler struct {
 	foldingRange               FoldingRangeHandlerFunc
 	selectionRange             SelectionRangeHandlerFunc
 	documentSymbol             DocumentSymbolHandlerFunc
+	semanticTokensFull         SemanticTokensFullHandlerFunc
+	semanticTokensFullDelta    SemanticTokensFullDeltaHandlerFunc
+	semanticTokensRange        SemanticTokensRangeHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -342,6 +345,27 @@ func WithSelectionRangeHandler(handler SelectionRangeHandlerFunc) HandlerOption 
 func WithDocumentSymbolHandler(handler DocumentSymbolHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetDocumentSymbolHandler(handler)
+	}
+}
+
+// WithSemanticTokensFullHandler sets the handler for the `textDocument/semanticTokens/full` request.
+func WithSemanticTokensFullHandler(handler SemanticTokensFullHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetSemanticTokensFullHandler(handler)
+	}
+}
+
+// WithSemanticTokensFullDeltaHandler sets the handler for the `textDocument/semanticTokens/full/delta` request.
+func WithSemanticTokensFullDeltaHandler(handler SemanticTokensFullDeltaHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetSemanticTokensFullDeltaHandler(handler)
+	}
+}
+
+// WithSemanticTokensRangeHandler sets the handler for the `textDocument/semanticTokens/range` request.
+func WithSemanticTokensRangeHandler(handler SemanticTokensRangeHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetSemanticTokensRangeHandler(handler)
 	}
 }
 
@@ -661,6 +685,30 @@ func (h *Handler) SetDocumentSymbolHandler(handler DocumentSymbolHandlerFunc) {
 	defer h.mu.Unlock()
 	h.documentSymbol = handler
 	h.messageHandlers[MethodDocumentSymbol] = createDocumentSymbolHandler(h)
+}
+
+// SetSemanticTokensFullHandler sets the handler for the `textDocument/semanticTokens/full` request.
+func (h *Handler) SetSemanticTokensFullHandler(handler SemanticTokensFullHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.semanticTokensFull = handler
+	h.messageHandlers[MethodSemanticTokensFull] = createSemanticTokensFullHandler(h)
+}
+
+// SetSemanticTokensFullDeltaHandler sets the handler for the `textDocument/semanticTokens/full/delta` request.
+func (h *Handler) SetSemanticTokensFullDeltaHandler(handler SemanticTokensFullDeltaHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.semanticTokensFullDelta = handler
+	h.messageHandlers[MethodSemanticTokensFullDelta] = createSemanticTokensFullDeltaHandler(h)
+}
+
+// SetSemanticTokensRangeHandler sets the handler for the `textDocument/semanticTokens/range` request.
+func (h *Handler) SetSemanticTokensRangeHandler(handler SemanticTokensRangeHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.semanticTokensRange = handler
+	h.messageHandlers[MethodSemanticTokensRange] = createSemanticTokensRangeHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1351,6 +1399,60 @@ func createDocumentSymbolHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.documentSymbol(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createSemanticTokensFullHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.semanticTokensFull != nil {
+				var params SemanticTokensParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.semanticTokensFull(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createSemanticTokensFullDeltaHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.semanticTokensFullDelta != nil {
+				var params SemanticTokensDeltaParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.semanticTokensFullDelta(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createSemanticTokensRangeHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.semanticTokensRange != nil {
+				var params SemanticTokensRangeParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.semanticTokensRange(ctx, &params)
 				}
 			}
 			return

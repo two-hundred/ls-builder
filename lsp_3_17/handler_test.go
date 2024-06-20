@@ -2070,6 +2070,147 @@ func (s *HandlerTestSuite) Test_calls_document_symbol_request_handler() {
 	s.Require().Equal(symbols, returnedDocumentSymbols)
 }
 
+func (s *HandlerTestSuite) Test_calls_semantic_tokens_full_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	resultID := "test-result-id"
+	semanticTokens := SemanticTokens{
+		ResultID: &resultID,
+		Data:     []UInteger{0, 5, 10, 13, 3, 20},
+	}
+	serverHandler := NewHandler(
+		WithSemanticTokensFullHandler(
+			func(ctx *common.LSPContext, params *SemanticTokensParams) (*SemanticTokens, error) {
+				return &semanticTokens, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	semanticTokensParams := SemanticTokensParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_semantic_tokens_full.go",
+		},
+	}
+
+	returnedSemanticTokens := SemanticTokens{}
+	err = clientLSPContext.Call(
+		MethodSemanticTokensFull,
+		semanticTokensParams,
+		&returnedSemanticTokens,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(semanticTokens, returnedSemanticTokens)
+}
+
+func (s *HandlerTestSuite) Test_calls_semantic_tokens_full_delta_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	resultID := "test-result-id-delta"
+	semanticTokensDelta := SemanticTokensDelta{
+		ResultID: &resultID,
+		Edits: []SemanticTokensEdit{
+			{
+				Start:       0,
+				DeleteCount: 1,
+				Data:        []UInteger{0, 5, 10, 13, 3, 20},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithSemanticTokensFullDeltaHandler(
+			func(ctx *common.LSPContext, params *SemanticTokensDeltaParams) (*SemanticTokensDelta, error) {
+				return &semanticTokensDelta, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	semanticTokensDeltaParams := SemanticTokensDeltaParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_semantic_tokens_full_delta.go",
+		},
+	}
+
+	returnedSemanticDeltaTokens := SemanticTokensDelta{}
+	err = clientLSPContext.Call(
+		MethodSemanticTokensFullDelta,
+		semanticTokensDeltaParams,
+		&returnedSemanticDeltaTokens,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(semanticTokensDelta, returnedSemanticDeltaTokens)
+}
+
+func (s *HandlerTestSuite) Test_calls_semantic_tokens_range_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	resultID := "test-result-id-range"
+	semanticTokens := SemanticTokens{
+		ResultID: &resultID,
+		Data:     []UInteger{0, 5, 10, 13, 3, 20},
+	}
+	serverHandler := NewHandler(
+		WithSemanticTokensRangeHandler(
+			func(ctx *common.LSPContext, params *SemanticTokensRangeParams) (*SemanticTokens, error) {
+				return &semanticTokens, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	semanticTokensRangeParams := SemanticTokensRangeParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_semantic_tokens_range.go",
+		},
+	}
+
+	returnedSemanticTokens := SemanticTokens{}
+	err = clientLSPContext.Call(
+		MethodSemanticTokensRange,
+		semanticTokensRangeParams,
+		&returnedSemanticTokens,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(semanticTokens, returnedSemanticTokens)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

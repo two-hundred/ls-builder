@@ -741,3 +741,148 @@ type SymbolInformation struct {
 	// symbols.
 	ContainerName *string `json:"containerName,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_semanticTokens
+
+const MethodSemanticTokensFull = Method("textDocument/semanticTokens/full")
+
+// SemanticTokensFullHandlerFunc is the function signature for the textDocument/semanticTokens/full
+// request handler that can be registered for a language server.
+type SemanticTokensFullHandlerFunc func(
+	ctx *common.LSPContext,
+	params *SemanticTokensParams,
+) (*SemanticTokens, error)
+
+// SemanticTokensParams contains the textDocument/semanticTokens/full request parameters.
+type SemanticTokensParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// SemanticTokens represents a full set of semantic tokens.
+type SemanticTokens struct {
+	// An optional result id. If provided and clients support delta updating
+	// the client will include the result id in the next semantic token request.
+	// A server can then instead of computing all semantic tokens again simply
+	// send a delta.
+	ResultID *string `json:"resultId,omitempty"`
+
+	// The actual tokens.
+	Data []UInteger `json:"data"`
+}
+
+const MethodSemanticTokensFullDelta = Method("textDocument/semanticTokens/full/delta")
+
+// SemanticTokensFullDeltaHandlerFunc is the function signature for the textDocument/semanticTokens/full/delta
+// request handler that can be registered for a language server.
+type SemanticTokensFullDeltaHandlerFunc func(
+	ctx *common.LSPContext,
+	params *SemanticTokensDeltaParams,
+) (*SemanticTokensDelta, error)
+
+// SemanticTokensDeltaParams contains the textDocument/semanticTokens/full/delta request parameters.
+type SemanticTokensDeltaParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The result id of a previous response. The result Id can either point to
+	// a full response or a delta response depending on what was received last.
+	PreviousResultID string `json:"previousResultId"`
+}
+
+// SemanticTokensDelta represents a delta set of semantic tokens.
+type SemanticTokensDelta struct {
+	ResultID *string `json:"resultId,omitempty"`
+
+	// The semantic token edits to transform a previous result into a new result.
+	Edits []SemanticTokensEdit `json:"edits"`
+}
+
+// SemanticTokensEdit represents a semantic token edit.
+type SemanticTokensEdit struct {
+	// The start offset of the edit.
+	Start UInteger `json:"start"`
+
+	// The number of elements to remove.
+	DeleteCount UInteger `json:"deleteCount"`
+
+	// The elements to insert.
+	Data []UInteger `json:"data,omitempty"`
+}
+
+const MethodSemanticTokensRange = Method("textDocument/semanticTokens/range")
+
+// SemanticTokensRangeHandlerFunc is the function signature for the textDocument/semanticTokens/range
+// request handler that can be registered for a language server.
+type SemanticTokensRangeHandlerFunc func(
+	ctx *common.LSPContext,
+	params *SemanticTokensRangeParams,
+) (*SemanticTokens, error)
+
+// SemanticTokensRangeParams contains the textDocument/semanticTokens/range request parameters.
+type SemanticTokensRangeParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The range the semantic tokens are requested for.
+	Range Range `json:"range"`
+}
+
+const MethodSemanticTokensRefresh = Method("workspace/semanticTokens/refresh")
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#semanticTokenTypes
+
+// SemanticTokenType is a predefined token types.
+type SemanticTokenType = string
+
+const (
+	SemanticTokenTypeNamespace = SemanticTokenType("namespace")
+	// Represents a generic type. Acts as a fallback for types which
+	// can't be mapped to a specific type like class or enum.
+	SemanticTokenTypeType          = SemanticTokenType("type")
+	SemanticTokenTypeClass         = SemanticTokenType("class")
+	SemanticTokenTypeEnum          = SemanticTokenType("enum")
+	SemanticTokenTypeInterface     = SemanticTokenType("interface")
+	SemanticTokenTypeStruct        = SemanticTokenType("struct")
+	SemanticTokenTypeTypeParameter = SemanticTokenType("typeParameter")
+	SemanticTokenTypeParameter     = SemanticTokenType("parameter")
+	SemanticTokenTypeVariable      = SemanticTokenType("variable")
+	SemanticTokenTypeProperty      = SemanticTokenType("property")
+	SemanticTokenTypeEnumMember    = SemanticTokenType("enumMember")
+	SemanticTokenTypeEvent         = SemanticTokenType("event")
+	SemanticTokenTypeFunction      = SemanticTokenType("function")
+	SemanticTokenTypeMethod        = SemanticTokenType("method")
+	SemanticTokenTypeMacro         = SemanticTokenType("macro")
+	SemanticTokenTypeKeyword       = SemanticTokenType("keyword")
+	SemanticTokenTypeModifier      = SemanticTokenType("modifier")
+	SemanticTokenTypeComment       = SemanticTokenType("comment")
+	SemanticTokenTypeString        = SemanticTokenType("string")
+	SemanticTokenTypeNumber        = SemanticTokenType("number")
+	SemanticTokenTypeRegexp        = SemanticTokenType("regexp")
+	SemanticTokenTypeOperator      = SemanticTokenType("operator")
+)
+
+// SemanticTokenModifier is a predefined token modifiers.
+type SemanticTokenModifier string
+
+const (
+	SemanticTokenModifierDeclaration    = SemanticTokenModifier("declaration")
+	SemanticTokenModifierDefinition     = SemanticTokenModifier("definition")
+	SemanticTokenModifierReadonly       = SemanticTokenModifier("readonly")
+	SemanticTokenModifierStatic         = SemanticTokenModifier("static")
+	SemanticTokenModifierDeprecated     = SemanticTokenModifier("deprecated")
+	SemanticTokenModifierAbstract       = SemanticTokenModifier("abstract")
+	SemanticTokenModifierAsync          = SemanticTokenModifier("async")
+	SemanticTokenModifierModification   = SemanticTokenModifier("modification")
+	SemanticTokenModifierDocumentation  = SemanticTokenModifier("documentation")
+	SemanticTokenModifierDefaultLibrary = SemanticTokenModifier("defaultLibrary")
+)
