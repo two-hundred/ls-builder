@@ -550,3 +550,60 @@ type CodeLensResolveHandlerFunc func(
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#codeLens_refresh
 
 const MethodCodeLensRefresh = Method("workspace/codeLens/refresh")
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_foldingRange
+
+const MethodFoldingRange = Method("textDocument/foldingRange")
+
+// FoldingRangeHandlerFunc is the function signature for the textDocument/foldingRange
+// request handler that can be registered for a language server.
+type FoldingRangeHandlerFunc func(
+	ctx *common.LSPContext,
+	params *FoldingRangeParams,
+) ([]FoldingRange, error)
+
+// FoldingRangeParams contains the textDocument/foldingRange request parameters.
+type FoldingRangeParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// FoldingRange represents a folding range.
+// To be valid, start and end line must be bigger
+// than zero and smaller than the number of lines in the document.
+// Clients are free to ignore invalid ranges.
+type FoldingRange struct {
+	// The zero-based start line of the range to fold. The folded area starts
+	// after the line's last character. To be valid, the end must be zero or
+	// larger and smaller than the number of lines in the document.
+	StartLine UInteger `json:"startLine"`
+
+	// The zero-based character offset from where the folded range starts. If
+	// not defined, defaults to the length of the start line.
+	StartCharacter *UInteger `json:"startCharacter,omitempty"`
+
+	// The zero-based end line of the range to fold. The folded area ends with
+	// the line's last character. To be valid, the end must be zero or larger
+	// and smaller than the number of lines in the document.
+	EndLine UInteger `json:"endLine"`
+
+	// The zero-based character offset before the folded range ends. If not
+	// defined, defaults to the length of the end line.
+	EndCharacter *UInteger `json:"endCharacter,omitempty"`
+
+	// Describes the kind of the folding range such as `comment` or `region`.
+	// The kind is used to categorize folding ranges and used by commands like
+	// 'Fold all comments'. See [FoldingRangeKind](#FoldingRangeKind) for an
+	// enumeration of standardized kinds.
+	Kind *FoldingRangeKind `json:"kind,omitempty"`
+
+	// The text that the client should show when the specified range is
+	// collapsed. If not defined or not supported by the client, a default
+	// will be chosen by the client.
+	//
+	// @since 3.17.0 - proposed
+	CollapsedText *string `json:"collapsedText,omitempty"`
+}

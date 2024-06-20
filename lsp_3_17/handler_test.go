@@ -1889,6 +1889,57 @@ func (s *HandlerTestSuite) Test_calls_code_lens_resolve_request_handler() {
 	s.Require().Equal(codeLensResult, returnedCodeLensResult)
 }
 
+func (s *HandlerTestSuite) Test_calls_folding_range_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	startChar := UInteger(5)
+	endChar := UInteger(10)
+	foldingRanges := []FoldingRange{
+		{
+			StartLine:      10,
+			StartCharacter: &startChar,
+			EndLine:        15,
+			EndCharacter:   &endChar,
+			Kind:           &FoldingRangeKindRegion,
+		},
+	}
+	serverHandler := NewHandler(
+		WithFoldingRangeHandler(
+			func(ctx *common.LSPContext, params *FoldingRangeParams) ([]FoldingRange, error) {
+				return foldingRanges, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	foldingRangeParams := FoldingRangeParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_folding_range.go",
+		},
+	}
+
+	returnedFoldingRanges := []FoldingRange{}
+	err = clientLSPContext.Call(
+		MethodFoldingRange,
+		foldingRangeParams,
+		&returnedFoldingRanges,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(foldingRanges, returnedFoldingRanges)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

@@ -60,6 +60,7 @@ type Handler struct {
 	hover                      HoverHandlerFunc
 	codeLens                   CodeLensHandlerFunc
 	codelensResolve            CodeLensResolveHandlerFunc
+	foldingRange               FoldingRangeHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -318,6 +319,13 @@ func WithCodeLensHandler(handler CodeLensHandlerFunc) HandlerOption {
 func WithCodeLensResolveHandler(handler CodeLensResolveHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetCodeLensResolveHandler(handler)
+	}
+}
+
+// WithFoldingRangeHandler sets the handler for the `textDocument/foldingRange` request.
+func WithFoldingRangeHandler(handler FoldingRangeHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetFoldingRangeHandler(handler)
 	}
 }
 
@@ -613,6 +621,14 @@ func (h *Handler) SetCodeLensResolveHandler(handler CodeLensResolveHandlerFunc) 
 	defer h.mu.Unlock()
 	h.codelensResolve = handler
 	h.messageHandlers[MethodCodeLensResolve] = createCodeLensResolveHandler(h)
+}
+
+// SetFoldingRangeHandler sets the handler for the `textDocument/foldingRange` request.
+func (h *Handler) SetFoldingRangeHandler(handler FoldingRangeHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.foldingRange = handler
+	h.messageHandlers[MethodFoldingRange] = createFoldingRangeHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1249,6 +1265,24 @@ func createCodeLensResolveHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.codelensResolve(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createFoldingRangeHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.foldingRange != nil {
+				var params FoldingRangeParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.foldingRange(ctx, &params)
 				}
 			}
 			return

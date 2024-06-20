@@ -610,7 +610,7 @@ type FoldingRangeKindCapabilities struct {
 // range kinds.
 type FoldingRangeKind = string
 
-const (
+var (
 	// FoldingRangeKindComment represents a folding range
 	// for a comment.
 	FoldingRangeKindComment FoldingRangeKind = "comment"
