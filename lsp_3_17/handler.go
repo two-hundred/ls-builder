@@ -58,6 +58,7 @@ type Handler struct {
 	documentLink               DocumentLinkHandlerFunc
 	documentLinkResolve        DocumentLinkResolveHandlerFunc
 	hover                      HoverHandlerFunc
+	codeLens                   CodeLensHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -302,6 +303,13 @@ func WithDocumentLinkResolveHandler(handler DocumentLinkResolveHandlerFunc) Hand
 func WithHoverHandler(handler HoverHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetHoverHandler(handler)
+	}
+}
+
+// WithCodeLensHandler sets the handler for the `textDocument/codeLens` request.
+func WithCodeLensHandler(handler CodeLensHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetCodeLensHandler(handler)
 	}
 }
 
@@ -581,6 +589,14 @@ func (h *Handler) SetHoverHandler(handler HoverHandlerFunc) {
 	defer h.mu.Unlock()
 	h.hover = handler
 	h.messageHandlers[MethodHover] = createHoverHandler(h)
+}
+
+// SetCodeLensHandler sets the handler for the `textDocument/codeLens` request.
+func (h *Handler) SetCodeLensHandler(handler CodeLensHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.codeLens = handler
+	h.messageHandlers[MethodCodeLens] = createCodeLensHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1181,6 +1197,24 @@ func createHoverHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.hover(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createCodeLensHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.codeLens != nil {
+				var params CodeLensParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.codeLens(ctx, &params)
 				}
 			}
 			return

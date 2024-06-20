@@ -1760,6 +1760,66 @@ func (s *HandlerTestSuite) Test_calls_hover_request_handler() {
 	s.Require().Equal(hover, returnedHover)
 }
 
+func (s *HandlerTestSuite) Test_calls_code_lens_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	codeLensResults := []CodeLens{
+		{
+			Range: Range{
+				Start: Position{
+					Line:      10,
+					Character: 5,
+				},
+				End: Position{
+					Line:      10,
+					Character: 15,
+				},
+			},
+			Command: &Command{
+				Title:     "Run test",
+				Command:   "test.run",
+				Arguments: []interface{}{"test.go"},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithCodeLensHandler(
+			func(ctx *common.LSPContext, params *CodeLensParams) ([]CodeLens, error) {
+				return codeLensResults, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	workDoneToken := "test-token-code-lens"
+	codeLensParams := CodeLensParams{
+		WorkDoneProgressParams: WorkDoneProgressParams{
+			WorkDoneToken: &IntOrString{StrVal: &workDoneToken},
+		},
+	}
+
+	returnedCodeLensResults := []CodeLens{}
+	err = clientLSPContext.Call(
+		MethodCodeLens,
+		codeLensParams,
+		&returnedCodeLensResults,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(codeLensResults, returnedCodeLensResults)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
