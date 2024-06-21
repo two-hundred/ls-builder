@@ -886,3 +886,246 @@ const (
 	SemanticTokenModifierDocumentation  = SemanticTokenModifier("documentation")
 	SemanticTokenModifierDefaultLibrary = SemanticTokenModifier("defaultLibrary")
 )
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_inlayHint
+
+const MethodInlayHint = Method("textDocument/inlayHint")
+
+// InlayHintHandlerFunc is the function signature for the textDocument/inlayHint
+// request handler that can be registered for a language server.
+type InlayHintHandlerFunc func(
+	ctx *common.LSPContext,
+	params *InlayHintParams,
+) ([]*InlayHint, error)
+
+// InlayHintParams contains the textDocument/inlayHint request parameters.
+// A parameter literal used in inlay hints requests.
+//
+// @since 3.17.0
+type InlayHintParams struct {
+	WorkDoneProgressParams
+
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The visible document range for which inlay hints should be computed.
+	Range Range `json:"range"`
+}
+
+// InlayHint holds inlay hint information.
+//
+// @since 3.17.0
+type InlayHint struct {
+	// The position of this hint.
+	//
+	// If multiple hints have the same position, they will be shown in the order
+	// they appear in the response.
+	Position Position `json:"position"`
+
+	// The label of this hint. A human readable string or an array of
+	// InlayHintLabelPart label parts.
+	//
+	// *Note* that neither the string nor the label part can be empty.
+	//
+	// string | []*InlayHintLabelPart
+	Label any `json:"label"`
+
+	// The kind of this hint. Can be omitted in which case the client
+	// should fall back to a reasonable default.
+	Kind *InlayHintKind `json:"kind,omitempty"`
+
+	// Optional text edits that are performed when accepting this inlay hint.
+	//
+	// *Note* that edits are expected to change the document so that the inlay
+	// hint (or its nearest variant) is now part of the document and the inlay
+	// hint itself is now obsolete.
+	//
+	// Depending on the client capability `inlayHint.resolveSupport` clients
+	// might resolve this property late using the resolve request.
+	TextEdits []TextEdit `json:"textEdits,omitempty"`
+
+	// The tooltip text when you hover over this item.
+	//
+	// Depending on the client capability `inlayHint.resolveSupport` clients
+	// might resolve this property late using the resolve request.
+	//
+	// string | MarkupContent | nil
+	Tooltip any `json:"tooltip,omitempty"`
+
+	// Render padding before the hint.
+	//
+	// Note: Padding should use the editor's background color, not the
+	// background color of the hint itself. That means padding can be used
+	// to visually align/separate an inlay hint.
+	PaddingLeft *bool `json:"paddingLeft,omitempty"`
+
+	// Render padding after the hint.
+	//
+	// Note: Padding should use the editor's background color, not the
+	// background color of the hint itself. That means padding can be used
+	// to visually align/separate an inlay hint.
+	PaddingRight *bool `json:"paddingRight,omitempty"`
+
+	// A data entry field that is preserved on an inlay hint between
+	// a `textDocument/inlayHint` and a `inlayHint/resolve` request.
+	Data LSPAny `json:"data,omitempty"`
+}
+
+type inlayHintIntermediary struct {
+	Position Position `json:"position"`
+	// string | []*InlayHintLabelPart
+	Label     json.RawMessage `json:"label"`
+	Kind      *InlayHintKind  `json:"kind,omitempty"`
+	TextEdits []TextEdit      `json:"textEdits,omitempty"`
+	// string | MarkupContent | nil
+	Tooltip      json.RawMessage `json:"tooltip,omitempty"`
+	PaddingLeft  *bool           `json:"paddingLeft,omitempty"`
+	PaddingRight *bool           `json:"paddingRight,omitempty"`
+	Data         LSPAny          `json:"data,omitempty"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (h *InlayHint) UnmarshalJSON(data []byte) error {
+
+	var value inlayHintIntermediary
+
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	h.Position = value.Position
+	h.Kind = value.Kind
+	h.TextEdits = value.TextEdits
+	h.PaddingLeft = value.PaddingLeft
+	h.PaddingRight = value.PaddingRight
+	h.Data = value.Data
+
+	err := h.unmarshalInlayHintLabel(&value)
+	if err != nil {
+		return err
+	}
+
+	err = h.unmarshalInlayHintTooltip(&value)
+	return err
+}
+
+func (h *InlayHint) unmarshalInlayHintLabel(value *inlayHintIntermediary) error {
+	var strVal string
+	if err := json.Unmarshal(value.Label, &strVal); err == nil {
+		h.Label = strVal
+		return nil
+	}
+
+	inlayHintLabelPartArrayVal := []*InlayHintLabelPart{}
+	err := json.Unmarshal(value.Label, &inlayHintLabelPartArrayVal)
+	if err == nil {
+		h.Label = inlayHintLabelPartArrayVal
+	}
+
+	return err
+}
+
+func (h *InlayHint) unmarshalInlayHintTooltip(value *inlayHintIntermediary) error {
+	var strVal string
+	if err := json.Unmarshal(value.Tooltip, &strVal); err == nil {
+		h.Tooltip = strVal
+		return nil
+	}
+
+	var markupContentVal MarkupContent
+	err := json.Unmarshal(value.Tooltip, &markupContentVal)
+	if err == nil && markupContentVal.Kind != "" {
+		h.Tooltip = markupContentVal
+	}
+
+	// Ignore the error as this field is optional.
+	return nil
+}
+
+// InlayHintKind is a kind of inlay hint.
+//
+// @since 3.17.0
+type InlayHintKind = UInteger
+
+var (
+	// InlayHintKindType is an inlay hint
+	// for a type annotation.
+	InlayHintKindType InlayHintKind = 1
+
+	// InlayHintKindParameter is an inlay hint
+	// for a parameter annotation.
+	InlayHintKindParameter InlayHintKind = 2
+)
+
+// InlayHintLabelPart represents a part of a label in an inlay hint.
+// An inlay hint label part allows for interactive and composite labels
+// of inlay hints.
+//
+// @since 3.17.0
+type InlayHintLabelPart struct {
+	// The value of this label part.
+	Value string `json:"value"`
+
+	// The tooltip text when you hover over this label part. Depending on
+	// the client capability `inlayHint.resolveSupport` clients might resolve
+	// this property late using the resolve request.
+	//
+	// string | MarkupContent | nil
+	Tooltip any `json:"tooltip,omitempty"`
+
+	// An optional source code location that represents this
+	// label part.
+	//
+	// The editor will use this location for the hover and for code navigation
+	// features: This part will become a clickable link that resolves to the
+	// definition of the symbol at the given location (not necessarily the
+	// location itself), it shows the hover that shows at the given location,
+	// and it shows a context menu with further code navigation commands.
+	//
+	// Depending on the client capability `inlayHint.resolveSupport` clients
+	// might resolve this property late using the resolve request.
+	Location *Location `json:"location,omitempty"`
+
+	// An optional command for this label part.
+	//
+	// Depending on the client capability `inlayHint.resolveSupport` clients
+	// might resolve this property late using the resolve request.
+	Command *Command `json:"command,omitempty"`
+}
+
+type inlayHintLabelPartIntermediary struct {
+	Value string `json:"value"`
+	// string | MarkupContent | nil
+	Tooltip  json.RawMessage `json:"tooltip,omitempty"`
+	Location *Location       `json:"location,omitempty"`
+	Command  *Command        `json:"command,omitempty"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (lp *InlayHintLabelPart) UnmarshalJSON(data []byte) error {
+
+	var value inlayHintLabelPartIntermediary
+
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	lp.Value = value.Value
+	lp.Location = value.Location
+	lp.Command = value.Command
+
+	var strTooltip string
+	if err := json.Unmarshal(value.Tooltip, &strTooltip); err == nil {
+		lp.Tooltip = strTooltip
+		return nil
+	}
+
+	var markupContentTooltip MarkupContent
+	err := json.Unmarshal(value.Tooltip, &markupContentTooltip)
+	if err == nil && markupContentTooltip.Kind != "" {
+		lp.Tooltip = markupContentTooltip
+	}
+
+	// Ignore the error as this field is optional.
+	return nil
+}

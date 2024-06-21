@@ -66,6 +66,7 @@ type Handler struct {
 	semanticTokensFull         SemanticTokensFullHandlerFunc
 	semanticTokensFullDelta    SemanticTokensFullDeltaHandlerFunc
 	semanticTokensRange        SemanticTokensRangeHandlerFunc
+	inlayHint                  InlayHintHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -366,6 +367,13 @@ func WithSemanticTokensFullDeltaHandler(handler SemanticTokensFullDeltaHandlerFu
 func WithSemanticTokensRangeHandler(handler SemanticTokensRangeHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetSemanticTokensRangeHandler(handler)
+	}
+}
+
+// WithInlayHintHandler sets the handler for the `textDocument/inlayHint` request.
+func WithInlayHintHandler(handler InlayHintHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetInlayHintHandler(handler)
 	}
 }
 
@@ -709,6 +717,14 @@ func (h *Handler) SetSemanticTokensRangeHandler(handler SemanticTokensRangeHandl
 	defer h.mu.Unlock()
 	h.semanticTokensRange = handler
 	h.messageHandlers[MethodSemanticTokensRange] = createSemanticTokensRangeHandler(h)
+}
+
+// SetInlayHintHandler sets the handler for the `textDocument/inlayHint` request.
+func (h *Handler) SetInlayHintHandler(handler InlayHintHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.inlayHint = handler
+	h.messageHandlers[MethodInlayHint] = createInlayHintHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1453,6 +1469,24 @@ func createSemanticTokensRangeHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.semanticTokensRange(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createInlayHintHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.inlayHint != nil {
+				var params InlayHintParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.inlayHint(ctx, &params)
 				}
 			}
 			return

@@ -2211,6 +2211,90 @@ func (s *HandlerTestSuite) Test_calls_semantic_tokens_range_request_handler() {
 	s.Require().Equal(semanticTokens, returnedSemanticTokens)
 }
 
+func (s *HandlerTestSuite) Test_calls_inlay_hint_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	inlayHints := []*InlayHint{
+		{
+			Position: Position{
+				Line:      10,
+				Character: 5,
+			},
+			Label: "TestHint",
+			Kind:  &InlayHintKindType,
+			Tooltip: MarkupContent{
+				Kind:  MarkupKindMarkdown,
+				Value: "TestHintTooltip",
+			},
+			TextEdits: []TextEdit{
+				{
+					Range: Range{
+						Start: Position{
+							Line:      10,
+							Character: 5,
+						},
+						End: Position{
+							Line:      10,
+							Character: 15,
+						},
+					},
+				},
+			},
+		},
+		{
+			Position: Position{
+				Line:      15,
+				Character: 5,
+			},
+			Label: []*InlayHintLabelPart{
+				{
+					Value: "TestHint2",
+					Tooltip: MarkupContent{
+						Kind:  MarkupKindMarkdown,
+						Value: "TestHintTooltip2",
+					},
+				},
+			},
+			Kind: &InlayHintKindType,
+		},
+	}
+	serverHandler := NewHandler(
+		WithInlayHintHandler(
+			func(ctx *common.LSPContext, params *InlayHintParams) ([]*InlayHint, error) {
+				return inlayHints, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	inlayHintParams := InlayHintParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_inlay_hint.go",
+		},
+	}
+
+	returnedInlayHints := []*InlayHint{}
+	err = clientLSPContext.Call(
+		MethodInlayHint,
+		inlayHintParams,
+		&returnedInlayHints,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(inlayHints, returnedInlayHints)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
