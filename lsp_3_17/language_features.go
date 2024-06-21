@@ -1294,3 +1294,7 @@ type InlineValueEvaluatableExpression struct {
 	// If specified, the expression overrides the extracted expression.
 	Expression *string `json:"expression,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_inlineValue_refresh
+
+const MethodInlineValueRefresh = Method("workspace/inlineValue/refresh")

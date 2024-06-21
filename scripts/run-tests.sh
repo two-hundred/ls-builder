@@ -26,7 +26,7 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 function help {
   cat << EOF
 Test runner
-Runs tests for the application:
+Runs tests for the library:
 bash scripts/run-tests.sh
 EOF
 }

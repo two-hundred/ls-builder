@@ -71,3 +71,9 @@ func (d *Dispatcher) SemanticTokensRefresh() error {
 func (d *Dispatcher) InlayHintRefresh() error {
 	return d.ctx.Call(MethodInlayHintRefresh, nil, nil)
 }
+
+// InlineValueRefresh requests the client to refresh inline values
+// currently shown in editors.
+func (d *Dispatcher) InlineValueRefresh() error {
+	return d.ctx.Call(MethodInlineValueRefresh, nil, nil)
+}

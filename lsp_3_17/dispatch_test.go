@@ -256,6 +256,29 @@ func (s *DispatchTestSuite) Test_server_sends_refresh_inlay_hints_message() {
 	s.Require().Equal(MethodInlayHintRefresh, container.clientReceivedMethods[0])
 }
 
+func (s *DispatchTestSuite) Test_server_sends_refresh_inline_value_message() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	err := dispatcher.InlineValueRefresh()
+	s.Require().NoError(err)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+	// Verify that the client received the refresh message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+	// Verify the method name.
+	s.Require().Len(container.clientReceivedMethods, 1)
+	s.Require().Equal(MethodInlineValueRefresh, container.clientReceivedMethods[0])
+}
+
 func TestDispatchTestSuite(t *testing.T) {
 	suite.Run(t, new(DispatchTestSuite))
 }
