@@ -1366,3 +1366,491 @@ const (
 	// The moniker is globally unique.
 	UniquenessLevelGlobal UniquenessLevel = "global"
 )
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion
+
+const MethodCompletion = Method("textDocument/completion")
+
+// CompletionHandlerFunc is the function signature for the textDocument/completion
+// request handler that can be registered for a language server.
+//
+// Returns: *CompletionList | []*CompletionItem | nil
+type CompletionHandlerFunc func(
+	ctx *common.LSPContext,
+	params *CompletionParams,
+) (any, error)
+
+// CompletionParams contains the textDocument/completion request parameters.
+type CompletionParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// The completion context. This is only available if the client specifies
+	// to send this using the client capability
+	// `completion.contextSupport === true`
+	Context *CompletionContext `json:"context,omitempty"`
+}
+
+// CompletionContext contains additional information abou the context in which a
+// completion request is triggered.
+type CompletionContext struct {
+	// How the completion was triggered.
+	TriggerKind CompletionTriggerKind `json:"triggerKind"`
+
+	// The trigger character (a single character) that has trigger code
+	// complete. Is undefined if
+	// `triggerKind !== CompletionTriggerKind.TriggerCharacter`
+	TriggerCharacter *string `json:"triggerCharacter,omitempty"`
+}
+
+// CompletionTriggerKind defines how a completion request was triggered.
+type CompletionTriggerKind = Integer
+
+const (
+	// CompletionTriggerKindInvoked means the completion was triggered
+	// by the user typing an identifier (24x7 code complete),
+	// manual invocation (e.g. Ctrl+Space) or via API.
+	CompletionTriggerKindInvoked CompletionTriggerKind = 1
+
+	// CompletionTriggerKindTriggerCharacter means the completion was
+	// triggered by a trigger character specified by the `triggerCharacters`
+	// properties of the `CompletionRegistrationOptions`.
+	CompletionTriggerKindTriggerCharacter CompletionTriggerKind = 2
+
+	// CompletionTriggerKindTriggerForIncompleteCompletions means the
+	// completion was re-triggered as the current completion list is
+	// incomplete.
+	CompletionTriggerKindTriggerForIncompleteCompletions CompletionTriggerKind = 3
+)
+
+// CompletionList represents a collection of [completion items](#CompletionItem)
+// to be presented in the editor.
+type CompletionList struct {
+	// This list is not complete. Further typing should result in recomputing
+	// this list.
+	//
+	// Recomputed lists have all their items replaced (not appended) in the
+	// incomplete completion sessions.
+	IsIncomplete bool `json:"isIncomplete"`
+
+	// In many cases the items of an actual completion result share the same
+	// value for properties like `commitCharacters` or the range of a text
+	// edit. A completion list can therefore define item defaults which will
+	// be used if a completion item itself doesn't specify the value.
+	//
+	// If a completion list specifies a default value and a completion item
+	// also specifies a corresponding value the one from the item is used.
+	//
+	// Servers are only allowed to return default values if the client
+	// signals support for this via the `completionList.itemDefaults`
+	// capability.
+	//
+	// @since 3.17.0
+	ItemDefaults *CompletionItemDefaults `json:"itemDefaults,omitempty"`
+
+	// The completion items.
+	Items []*CompletionItem `json:"items"`
+}
+
+// CompletionItemDefaults provides default values for each kind of completion
+// item.
+type CompletionItemDefaults struct {
+	// A default commit character set.
+	//
+	// @since 3.17.0
+	CommitCharacters []string `json:"commitCharacters,omitempty"`
+
+	// A default edit range.
+	//
+	// @since 3.17.0
+	//
+	// Range | InsertReplaceRange | nil
+	EditRange any `json:"editRange,omitempty"`
+
+	// A default insert text format.
+	//
+	// @since 3.17.0
+	InsertTextFormat *InsertTextFormat `json:"insertTextFormat,omitempty"`
+
+	// A default insert text mode.
+	//
+	// @since 3.17.0
+	InsertTextMode *InsertTextMode `json:"insertTextMode,omitempty"`
+
+	// A default data value.
+	//
+	// @since 3.17.0
+	Data LSPAny `json:"data,omitempty"`
+}
+
+type completionItemDefaultsIntermediary struct {
+	CommitCharacters []string `json:"commitCharacters,omitempty"`
+	// Range | InsertReplaceRange | nil
+	EditRange        json.RawMessage   `json:"editRange,omitempty"`
+	InsertTextFormat *InsertTextFormat `json:"insertTextFormat,omitempty"`
+	InsertTextMode   *InsertTextMode   `json:"insertTextMode,omitempty"`
+	Data             LSPAny            `json:"data,omitempty"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (d *CompletionItemDefaults) UnmarshalJSON(data []byte) error {
+
+	var value completionItemDefaultsIntermediary
+
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	d.CommitCharacters = value.CommitCharacters
+	d.InsertTextFormat = value.InsertTextFormat
+	d.InsertTextMode = value.InsertTextMode
+	d.Data = value.Data
+
+	d.unmarshalEditRange(&value)
+	// On failure to unmarhsal edit range, we can fallback to a nil valuable
+	// as the field is optional.
+	return nil
+
+}
+
+func (d *CompletionItemDefaults) unmarshalEditRange(value *completionItemDefaultsIntermediary) error {
+	var insertReplaceRangeVal InsertReplaceRange
+	err := json.Unmarshal(value.EditRange, &insertReplaceRangeVal)
+	if err == nil && (insertReplaceRangeVal.Insert != nil || insertReplaceRangeVal.Replace != nil) {
+		d.EditRange = insertReplaceRangeVal
+		return nil
+	}
+
+	var rangeVal Range
+	if err := json.Unmarshal(value.EditRange, &rangeVal); err == nil {
+		d.EditRange = rangeVal
+		return nil
+	}
+
+	return err
+}
+
+// InsertReplaceRange contains both insert and replace ranges
+// for an edit.
+type InsertReplaceRange struct {
+	Insert  *Range `json:"insert"`
+	Replace *Range `json:"replace"`
+}
+
+// InsertTextFormat defins whether the insert text in a completion item should be
+// interpreted as plain text or a snippet.
+type InsertTextFormat = Integer
+
+var (
+	// InsertTextFormatPlainText means the primary text
+	// to be inserted is treated as a plain string.
+	InsertTextFormatPlainText InsertTextFormat = 1
+
+	// InsertTextFormatSnippet means the primary text
+	// to be instered is to be treated as a snippet.
+	//
+	// A snippet can define tab stops and placeholders with `$1`, `$2`
+	// and `${3:foo}`. `$0` defines the final tab stop, it defaults to
+	// the end of the snippet. Placeholders with equal identifiers are linked,
+	// that is typing in one will update others too.
+	InsertTextFormatSnippet InsertTextFormat = 2
+)
+
+// InsertTextMode determines how whitespace and indentations are handled
+// during completion item insertion.
+//
+// @since 3.16.0
+type InsertTextMode = Integer
+
+var (
+	// InsertTextModeAsIs means the insertion or replace strings are taken as
+	// they are.
+	// If the
+	// value is multi line the lines below the cursor will be
+	// inserted using the indentation defined in the string value.
+	// The client will not apply any kind of adjustments to the
+	// string.
+	InsertTextModeAsIs InsertTextMode = 1
+
+	// InsertTextModeAdjustIndentation means the editor adjusts leading
+	// whitespace of new lines so that they match the indentation up to the
+	// cursor of the line for which the item is accepted.
+	//
+	// Consider a line like this: <2tabs><cursor><3tabs>foo. Accepting a
+	// multi line completion item is indented using 2 tabs and all
+	// following lines inserted will be indented using 2 tabs as well.
+	InsertTextModeAdjustIndentation InsertTextMode = 2
+)
+
+// CompletionItem represents a completion item that is presented in a completion
+// list in a client editor.
+type CompletionItem struct {
+	// The label of this completion item.
+	//
+	// The label property is also by default the text that
+	// is inserted when selecting this completion.
+	//
+	// If label details are provided the label itself should
+	// be an unqualified name of the completion item.
+	Label string `json:"label"`
+
+	// Additional details for the label.
+	//
+	// @since 3.17.0
+	LabelDetails *CompletionItemLabelDetails `json:"labelDetails,omitempty"`
+
+	// The kind of this completion item. Based of the kind
+	// an icon is chosen by the editor. The standardized set
+	// of available values is defined in `CompletionItemKind`.
+	Kind *CompletionItemKind `json:"kind,omitempty"`
+
+	// Tags for this completion item.
+	//
+	// @since 3.15.0
+	Tags []CompletionItemTag `json:"tags,omitempty"`
+
+	// A human-readable string with additional information
+	// about this item, like type or symbol information.
+	Detail *string `json:"detail,omitempty"`
+
+	// A human-readable string that represents a doc-comment.
+	//
+	// string | MarkupContent | nil
+	Documentation any `json:"documentation,omitempty"`
+
+	// Indicates if this item is deprecated.
+	//
+	// @deprecated Use `tags` instead if supported.
+	Deprecated *bool `json:"deprecated,omitempty"`
+
+	// Select this item when showing.
+	//
+	// *Note* that only one completion item can be selected and that the
+	// tool / client decides which item that is. The rule is that the *first*
+	// item of those that match best is selected.
+	Preselect *bool `json:"preselect,omitempty"`
+
+	// A string that should be used when comparing this item
+	// with other items. When omitted the label is used
+	// as the sort text for this item.
+	SortText *string `json:"sortText,omitempty"`
+
+	// A string that should be used when filtering a set of
+	// completion items. When omitted the label is used as the
+	// filter text for this item.
+	FilterText *string `json:"filterText,omitempty"`
+
+	// A string that should be inserted into a document when selecting
+	// this completion. When omitted the label is used as the insert text
+	// for this item.
+	//
+	// The `insertText` is subject to interpretation by the client side.
+	// Some tools might not take the string literally. For example
+	// VS Code when code complete is requested in this example
+	// `con<cursor position>` and a completion item with an `insertText` of
+	// `console` is provided it will only insert `sole`. Therefore it is
+	// recommended to use `textEdit` instead since it avoids additional client
+	// side interpretation.
+	InsertText *string `json:"insertText,omitempty"`
+
+	// The format of the insert text. The format applies to both the
+	// `insertText` property and the `newText` property of a provided
+	// `textEdit`. If omitted defaults to `InsertTextFormat.PlainText`.
+	//
+	// Please note that the insertTextFormat doesn't apply to
+	// `additionalTextEdits`.
+	InsertTextFormat *InsertTextFormat `json:"insertTextFormat,omitempty"`
+
+	// How whitespace and indentation is handled during completion
+	// item insertion. If not provided the client's default value depends on
+	// the `textDocument.completion.insertTextMode` client capability.
+	//
+	// @since 3.16.0
+	// @since 3.17.0 - support for `textDocument.completion.insertTextMode`
+	InsertTextMode *InsertTextMode `json:"insertTextMode,omitempty"`
+
+	// An edit which is applied to a document when selecting this completion.
+	// When an edit is provided the value of `insertText` is ignored.
+	//
+	// *Note:* The range of the edit must be a single line range and it must
+	// contain the position at which completion has been requested.
+	//
+	// Most editors support two different operations when accepting a completion
+	// item. One is to insert a completion text and the other is to replace an
+	// existing text with a completion text. Since this can usually not be
+	// predetermined by a server it can report both ranges. Clients need to
+	// signal support for `InsertReplaceEdit`s via the
+	// `textDocument.completion.completionItem.insertReplaceSupport` client
+	// capability property.
+	//
+	// *Note 1:* The text edit's range as well as both ranges from an insert
+	// replace edit must be a [single line] and they must contain the position
+	// at which completion has been requested.
+	// *Note 2:* If an `InsertReplaceEdit` is returned the edit's insert range
+	// must be a prefix of the edit's replace range, that means it must be
+	// contained and starting at the same position.
+	//
+	// @since 3.16.0 additional type `InsertReplaceEdit`
+	//
+	// TextEdit | InsertReplaceEdit | nil
+	TextEdit any `json:"textEdit,omitempty"`
+
+	// The edit text used if the completion item is part of a CompletionList and
+	// CompletionList defines an item default for the text edit range.
+	//
+	// Clients will only honor this property if they opt into completion list
+	// item defaults using the capability `completionList.itemDefaults`.
+	//
+	// If not provided and a list's default range is provided the label
+	// property is used as a text.
+	//
+	// @since 3.17.0
+	TextEditText *string `json:"textEditText,omitempty"`
+
+	// An optional array of additional text edits that are applied when
+	// selecting this completion. Edits must not overlap (including the same
+	// insert position) with the main edit nor with themselves.
+	//
+	// Additional text edits should be used to change text unrelated to the
+	// current cursor position (for example adding an import statement at the
+	// top of the file if the completion item will insert an unqualified type).
+	AdditionalTextEdits []TextEdit `json:"additionalTextEdits,omitempty"`
+
+	// An optional set of characters that when pressed while this completion is
+	// active will accept it first and then type that character. Note that all
+	// commit characters should have `length=1` and that superfluous characters
+	// will be ignored.
+	CommitCharacters []string `json:"commitCharacters,omitempty"`
+
+	// An optional command that is executed *after* inserting this completion.
+	// *Note* that additional modifications to the current document should be
+	// described with the additionalTextEdits-property.
+	Command *Command `json:"command,omitempty"`
+
+	// A data entry field that is preserved on a completion item between
+	// a completion and a completion resolve request.
+	Data LSPAny `json:"data,omitempty"`
+}
+
+type completionItemIntermediary struct {
+	Label        string                      `json:"label"`
+	LabelDetails *CompletionItemLabelDetails `json:"labelDetails,omitempty"`
+	Kind         *CompletionItemKind         `json:"kind,omitempty"`
+	Tags         []CompletionItemTag         `json:"tags,omitempty"`
+	Detail       *string                     `json:"detail,omitempty"`
+	// string | MarkupContent | nil
+	Documentation    json.RawMessage   `json:"documentation,omitempty"`
+	Deprecated       *bool             `json:"deprecated,omitempty"`
+	Preselect        *bool             `json:"preselect,omitempty"`
+	SortText         *string           `json:"sortText,omitempty"`
+	FilterText       *string           `json:"filterText,omitempty"`
+	InsertText       *string           `json:"insertText,omitempty"`
+	InsertTextFormat *InsertTextFormat `json:"insertTextFormat,omitempty"`
+	InsertTextMode   *InsertTextMode   `json:"insertTextMode,omitempty"`
+	// TextEdit | InsertReplaceEdit | nil
+	TextEdit            json.RawMessage `json:"textEdit,omitempty"`
+	TextEditText        *string         `json:"textEditText,omitempty"`
+	AdditionalTextEdits []TextEdit      `json:"additionalTextEdits,omitempty"`
+	CommitCharacters    []string        `json:"commitCharacters,omitempty"`
+	Command             *Command        `json:"command,omitempty"`
+	Data                LSPAny          `json:"data,omitempty"`
+}
+
+// Fulfils the json.Unmarhaller interface.
+func (i *CompletionItem) UnmarshalJSON(data []byte) error {
+
+	var value completionItemIntermediary
+
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	i.Label = value.Label
+	i.LabelDetails = value.LabelDetails
+	i.Kind = value.Kind
+	i.Tags = value.Tags
+	i.Detail = value.Detail
+	i.Deprecated = value.Deprecated
+	i.Preselect = value.Preselect
+	i.SortText = value.SortText
+	i.FilterText = value.FilterText
+	i.InsertText = value.InsertText
+	i.InsertTextFormat = value.InsertTextFormat
+	i.InsertTextMode = value.InsertTextMode
+	i.TextEditText = value.TextEditText
+	i.AdditionalTextEdits = value.AdditionalTextEdits
+	i.CommitCharacters = value.CommitCharacters
+	i.Command = value.Command
+	i.Data = value.Data
+
+	// Documentation and text edit fields are optional,
+	// so on failure to unmarshal, nil values will be set.
+	i.unmarshalDocumentation(&value)
+	i.unmarshalTextEdit(&value)
+
+	return nil
+}
+
+func (i *CompletionItem) unmarshalDocumentation(value *completionItemIntermediary) error {
+	var strVal string
+	if err := json.Unmarshal(value.Documentation, &strVal); err == nil {
+		i.Documentation = strVal
+		return nil
+	}
+
+	var markupContent MarkupContent
+	if err := json.Unmarshal(value.Documentation, &markupContent); err == nil && markupContent.Kind != "" {
+		i.Documentation = markupContent
+	} else {
+		return err
+	}
+
+	return nil
+}
+
+func (i *CompletionItem) unmarshalTextEdit(value *completionItemIntermediary) error {
+	var textEditVal TextEdit
+	if err := json.Unmarshal(value.TextEdit, &textEditVal); err == nil && textEditVal.Range != nil {
+		i.TextEdit = textEditVal
+		return nil
+	}
+
+	var insertReplaceEdit InsertReplaceEdit
+	err := json.Unmarshal(value.TextEdit, &insertReplaceEdit)
+	if err == nil && (insertReplaceEdit.Replace != nil || insertReplaceEdit.Insert != nil) {
+		i.TextEdit = insertReplaceEdit
+	}
+
+	return err
+}
+
+// InsertReplaceEdit is a special text edit to provide an insert and a replace operation.
+//
+// @since 3.16.0
+type InsertReplaceEdit struct {
+	// The string to be inserted.
+	NewText string `json:"newText"`
+
+	// The range if the insert is requested.
+	Insert *Range `json:"insert"`
+
+	// The range if the replace is requested.
+	Replace *Range `json:"replace"`
+}
+
+// CompletionItemLabelDetails provides additional details for a completion
+// item label.
+//
+// @since 3.17.0
+type CompletionItemLabelDetails struct {
+	// An optional string which is rendered less prominently directly after
+	// {@link CompletionItem.label label}, without any spacing. Should be
+	// used for function signatures or type annotations.
+	Detail *string `json:"detail,omitempty"`
+
+	// An optional string which is rendered less prominently after
+	// {@link CompletionItemLabelDetails.detail}. Should be used for fully qualified
+	// names or file path.
+	Description *string `json:"description,omitempty"`
+}

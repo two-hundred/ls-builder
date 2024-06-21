@@ -70,6 +70,7 @@ type Handler struct {
 	inlayHintResolve           InlayHintResolveHandlerFunc
 	inlineValue                InlineValueHandlerFunc
 	moniker                    MonikerHandlerFunc
+	completion                 CompletionHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -398,6 +399,13 @@ func WithInlineValueHandler(handler InlineValueHandlerFunc) HandlerOption {
 func WithMonikerHandler(handler MonikerHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetMonikerHandler(handler)
+	}
+}
+
+// WithCompletionHandler sets teh handler for the `textDocument/completion` request.
+func WithCompletionHandler(handler CompletionHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetCompletionHandler(handler)
 	}
 }
 
@@ -773,6 +781,14 @@ func (h *Handler) SetMonikerHandler(handler MonikerHandlerFunc) {
 	defer h.mu.Unlock()
 	h.moniker = handler
 	h.messageHandlers[MethodMoniker] = createMonikerHandler(h)
+}
+
+// SetCompletionHandler sets the handler for the `textDocument/completion` request.
+func (h *Handler) SetCompletionHandler(handler CompletionHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.completion = handler
+	h.messageHandlers[MethodCompletion] = createCompletionHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1589,6 +1605,24 @@ func createMonikerHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.moniker(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createCompletionHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.completion != nil {
+				var params CompletionParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.completion(ctx, &params)
 				}
 			}
 			return

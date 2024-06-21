@@ -471,7 +471,7 @@ func (s *HandlerTestSuite) Test_calls_text_document_will_save_wait_until_request
 
 	textEdits := []TextEdit{
 		{
-			Range: Range{
+			Range: &Range{
 				Start: Position{
 					Line:      1,
 					Character: 5,
@@ -2232,7 +2232,7 @@ func (s *HandlerTestSuite) Test_calls_inlay_hint_request_handler() {
 			},
 			TextEdits: []TextEdit{
 				{
-					Range: Range{
+					Range: &Range{
 						Start: Position{
 							Line:      10,
 							Character: 5,
@@ -2315,7 +2315,7 @@ func (s *HandlerTestSuite) Test_calls_inlay_hint_resolve_request_handler() {
 		},
 		TextEdits: []TextEdit{
 			{
-				Range: Range{
+				Range: &Range{
 					Start: Position{
 						Line:      10,
 						Character: 5,
@@ -2519,6 +2519,114 @@ func (s *HandlerTestSuite) Test_calls_moniker_request_handler() {
 	)
 	s.Require().NoError(err)
 	s.Require().Equal(monikers, returnedMonikers)
+}
+
+func (s *HandlerTestSuite) Test_calls_completion_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	labelDetail := "The label for the custom completion item unique to the test language server"
+	detail := "A custom completion item unique to the test language server"
+	insertText := "Insert custom completion item"
+	completionItemKind := CompletionItemKindClass
+	completionList := CompletionList{
+		IsIncomplete: false,
+		ItemDefaults: &CompletionItemDefaults{
+			CommitCharacters: []string{"a", "b", "c"},
+			EditRange: InsertReplaceRange{
+				Insert: &Range{
+					Start: Position{
+						Line:      145,
+						Character: 50,
+					},
+					End: Position{
+						Line:      145,
+						Character: 87,
+					},
+				},
+			},
+			InsertTextFormat: &InsertTextFormatPlainText,
+			InsertTextMode:   &InsertTextModeAsIs,
+		},
+		Items: []*CompletionItem{
+			{
+				Label: "CompletionItem",
+				LabelDetails: &CompletionItemLabelDetails{
+					Detail: &labelDetail,
+				},
+				Kind: &completionItemKind,
+				Tags: []CompletionItemTag{
+					CompletionItemTagDeprecated,
+				},
+				Detail: &detail,
+				Documentation: MarkupContent{
+					Kind:  MarkupKindMarkdown,
+					Value: "# Completion Item Info\nSome additional information about the completion item",
+				},
+				InsertText:       &insertText,
+				InsertTextFormat: &InsertTextFormatPlainText,
+				InsertTextMode:   &InsertTextModeAsIs,
+				TextEdit: InsertReplaceEdit{
+					Insert: &Range{
+						Start: Position{
+							Line:      1403,
+							Character: 50,
+						},
+						End: Position{
+							Line:      1760,
+							Character: 100,
+						},
+					},
+					Replace: &Range{
+						Start: Position{
+							Line:      1203,
+							Character: 51,
+						},
+						End: Position{
+							Line:      1657,
+							Character: 110,
+						},
+					},
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithCompletionHandler(
+			func(ctx *common.LSPContext, params *CompletionParams) (any, error) {
+				return completionList, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	completionParams := CompletionParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_completion.go",
+			},
+		},
+	}
+
+	returnedCompletionList := CompletionList{}
+	err = clientLSPContext.Call(
+		MethodCompletion,
+		completionParams,
+		&returnedCompletionList,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(completionList, returnedCompletionList)
 }
 
 func TestHandlerTestSuite(t *testing.T) {
