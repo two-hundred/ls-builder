@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/two-hundred/ls-builder/common"
 )
@@ -1144,3 +1145,152 @@ type InlayHintResolveHandlerFunc func(
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_inlayHint_refresh
 
 const MethodInlayHintRefresh = Method("workspace/inlayHint/refresh")
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_inlineValue
+
+const MethodInlineValue = Method("textDocument/inlineValue")
+
+// InlineValueHandlerFunc is the function signature for the textDocument/inlineValue
+// request handler that can be registered for a language server.
+//
+// Inline value information can be provided by different means:
+// - directly as a text value (class InlineValueText).
+// - as a name to use for a variable lookup (class InlineValueVariableLookup)
+// - as an evaluatable expression (class InlineValueEvaluatableExpression)
+// The InlineValue types combines all inline value types into one type.
+//
+// @since 3.17.0
+type InlineValueHandlerFunc func(
+	ctx *common.LSPContext,
+	params *InlineValueParams,
+) ([]*InlineValue, error)
+
+// Inline value information can be provided by different means:
+// - directly as a text value (class InlineValueText).
+// - as a name to use for a variable lookup (class InlineValueVariableLookup)
+// - as an evaluatable expression (class InlineValueEvaluatableExpression)
+// The InlineValue types combines all inline value types into one type.
+//
+// @since 3.17.0
+type InlineValue struct {
+	InlineValueText           *InlineValueText                  `json:"inlineValueText,omitempty"`
+	InlineValueVariableLookup *InlineValueVariableLookup        `json:"inlineValueVariableLookup,omitempty"`
+	InlineValueEvaluatable    *InlineValueEvaluatableExpression `json:"inlineValueEvaluatable,omitempty"`
+}
+
+// Fulfils the json.Marshaler interface.
+func (iv *InlineValue) MarshalJSON() ([]byte, error) {
+	if iv.InlineValueText != nil {
+		return json.Marshal(iv.InlineValueText)
+	} else if iv.InlineValueVariableLookup != nil {
+		return json.Marshal(iv.InlineValueVariableLookup)
+	} else if iv.InlineValueEvaluatable != nil {
+		return json.Marshal(iv.InlineValueEvaluatable)
+	}
+
+	return nil, errors.New("one InlineValue type must be set")
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (iv *InlineValue) UnmarshalJSON(data []byte) error {
+	var ivText InlineValueText
+	if err := json.Unmarshal(data, &ivText); err == nil && ivText.Text != "" {
+		iv.InlineValueText = &ivText
+		return nil
+	}
+
+	var ivVariableLookup InlineValueVariableLookup
+	if err := json.Unmarshal(data, &ivVariableLookup); err == nil && ivVariableLookup.VariableName != nil {
+		iv.InlineValueVariableLookup = &ivVariableLookup
+		return nil
+	}
+
+	var ivEvaluatable InlineValueEvaluatableExpression
+	if err := json.Unmarshal(data, &ivEvaluatable); err == nil && ivEvaluatable.Expression != nil {
+		iv.InlineValueEvaluatable = &ivEvaluatable
+		return nil
+	}
+
+	return errors.New("one InlineValue type must be set")
+}
+
+// InlineValueParams contains the textDocument/inlineValue request parameters.
+//
+// @since 3.17.0
+type InlineValueParams struct {
+	WorkDoneProgressParams
+
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The document range for which inline values should be computed.
+	Range Range `json:"range"`
+
+	// Additional information about the context in which inline values were
+	// requested.
+	Context InlineValueContext `json:"context"`
+}
+
+// InlineValueContext provides additional information about the context in
+// which inline values were requested.
+//
+// @since 3.17.0
+type InlineValueContext struct {
+	// The stack frame (as a DAP Id) where the execution has stopped.
+	FrameID Integer `json:"frameId,omitempty"`
+
+	// The document range where execution has stopped.
+	// Typically the end position of the range denotes the line where the
+	// inline values are shown.
+	StoppedLocation Range `json:"stoppedLocation"`
+}
+
+// InlineValueText provides inline value as text.
+//
+// @since 3.17.0
+type InlineValueText struct {
+	// The document range for which the inline value applies.
+	Range Range `json:"range"`
+
+	// The text of the inline value.
+	Text string `json:"text"`
+}
+
+// InlineValueVariableLookup provides inline value as a variable lookup.
+//
+// If only a range is specified, the variable name will be extracted from
+// the underlying document.
+//
+// An optional variable name can be used to override the extracted name.
+//
+// @since 3.17.0
+type InlineValueVariableLookup struct {
+	// The document range for which the inline value applies.
+	// The range is used to extract the variable name from the underlying
+	// document.
+	Range Range `json:"range"`
+
+	// If specified, the name of the variable to lookup.
+	VariableName *string `json:"variableName,omitempty"`
+
+	// How to perform the lookup.
+	CaseSensitiveLookup bool `json:"caseSensitiveLookup"`
+}
+
+// InlineValueEvaluatableExpression provides inline value as an evaluatable expression.
+//
+// If only a range is specified, the expression will be extracted from the
+// underlying document.
+//
+// An optional expression can be used to override the extracted expression.
+//
+// @since 3.17.0
+type InlineValueEvaluatableExpression struct {
+	// The document range for which the inline value applies.
+	// The range is used to extract the evaluatable expression from the
+	// underlying document.
+	Range Range `json:"range"`
+
+	// If specified, the expression overrides the extracted expression.
+	Expression *string `json:"expression,omitempty"`
+}

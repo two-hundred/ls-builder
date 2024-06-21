@@ -68,6 +68,7 @@ type Handler struct {
 	semanticTokensRange        SemanticTokensRangeHandlerFunc
 	inlayHint                  InlayHintHandlerFunc
 	inlayHintResolve           InlayHintResolveHandlerFunc
+	inlineValue                InlineValueHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -382,6 +383,13 @@ func WithInlayHintHandler(handler InlayHintHandlerFunc) HandlerOption {
 func WithInlayHintResolveHandler(handler InlayHintResolveHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetInlayHintResolveHandler(handler)
+	}
+}
+
+// WithInlineValueHandler sets the handler for the `inlineValue` request.
+func WithInlineValueHandler(handler InlineValueHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetInlineValueHandler(handler)
 	}
 }
 
@@ -741,6 +749,14 @@ func (h *Handler) SetInlayHintResolveHandler(handler InlayHintResolveHandlerFunc
 	defer h.mu.Unlock()
 	h.inlayHintResolve = handler
 	h.messageHandlers[MethodInlayHintResolve] = createInlayHintResolveHandler(h)
+}
+
+// SetInlineValueHandler sets the handler for the `inlineValue` request.
+func (h *Handler) SetInlineValueHandler(handler InlineValueHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.inlineValue = handler
+	h.messageHandlers[MethodInlineValue] = createInlineValueHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1521,6 +1537,24 @@ func createInlayHintResolveHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.inlayHintResolve(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createInlineValueHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.inlineValue != nil {
+				var params InlineValueParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.inlineValue(ctx, &params)
 				}
 			}
 			return

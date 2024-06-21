@@ -2368,6 +2368,109 @@ func (s *HandlerTestSuite) Test_calls_inlay_hint_resolve_request_handler() {
 	s.Require().Equal(inlayHint, returnedInlayHint)
 }
 
+func (s *HandlerTestSuite) Test_calls_inline_value_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	variableName := "TestVariable"
+	expression := "testExpression(someArgument)"
+	inlineValues := []*InlineValue{
+		{
+			InlineValueText: &InlineValueText{
+				Range: Range{
+					Start: Position{
+						Line:      20,
+						Character: 5,
+					},
+					End: Position{
+						Line:      20,
+						Character: 13,
+					},
+				},
+				Text: "TestInlineValue",
+			},
+		},
+		{
+			InlineValueVariableLookup: &InlineValueVariableLookup{
+				Range: Range{
+					Start: Position{
+						Line:      25,
+						Character: 5,
+					},
+					End: Position{
+						Line:      25,
+						Character: 13,
+					},
+				},
+				VariableName:        &variableName,
+				CaseSensitiveLookup: true,
+			},
+		},
+		{
+			InlineValueEvaluatable: &InlineValueEvaluatableExpression{
+				Range: Range{
+					Start: Position{
+						Line:      30,
+						Character: 5,
+					},
+					End: Position{
+						Line:      30,
+						Character: 14,
+					},
+				},
+				Expression: &expression,
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithInlineValueHandler(
+			func(ctx *common.LSPContext, params *InlineValueParams) ([]*InlineValue, error) {
+				return inlineValues, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	inlineValueParams := InlineValueParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_inline_value.go",
+		},
+		Context: InlineValueContext{
+			FrameID: 14,
+			StoppedLocation: Range{
+				Start: Position{
+					Line:      10,
+					Character: 5,
+				},
+				End: Position{
+					Line:      10,
+					Character: 13,
+				},
+			},
+		},
+	}
+
+	returnedInlineValues := []*InlineValue{}
+	err = clientLSPContext.Call(
+		MethodInlineValue,
+		inlineValueParams,
+		&returnedInlineValues,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(inlineValues, returnedInlineValues)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
