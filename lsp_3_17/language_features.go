@@ -1129,3 +1129,14 @@ func (lp *InlayHintLabelPart) UnmarshalJSON(data []byte) error {
 	// Ignore the error as this field is optional.
 	return nil
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#inlayHint_resolve
+
+const MethodInlayHintResolve = Method("inlayHint/resolve")
+
+// InlayHintResolveHandlerFunc is the function signature for the inlayHint/resolve
+// request handler that can be registered for a language server.
+type InlayHintResolveHandlerFunc func(
+	ctx *common.LSPContext,
+	params *InlayHint,
+) (*InlayHint, error)

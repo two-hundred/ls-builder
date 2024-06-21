@@ -67,6 +67,7 @@ type Handler struct {
 	semanticTokensFullDelta    SemanticTokensFullDeltaHandlerFunc
 	semanticTokensRange        SemanticTokensRangeHandlerFunc
 	inlayHint                  InlayHintHandlerFunc
+	inlayHintResolve           InlayHintResolveHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -374,6 +375,13 @@ func WithSemanticTokensRangeHandler(handler SemanticTokensRangeHandlerFunc) Hand
 func WithInlayHintHandler(handler InlayHintHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetInlayHintHandler(handler)
+	}
+}
+
+// WithInlayHintResolveHandler sets the handler for the `inlayHint/resolve` request.
+func WithInlayHintResolveHandler(handler InlayHintResolveHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetInlayHintResolveHandler(handler)
 	}
 }
 
@@ -725,6 +733,14 @@ func (h *Handler) SetInlayHintHandler(handler InlayHintHandlerFunc) {
 	defer h.mu.Unlock()
 	h.inlayHint = handler
 	h.messageHandlers[MethodInlayHint] = createInlayHintHandler(h)
+}
+
+// SetInlayHintResolveHandler sets the handler for the `inlayHint/resolve` request.
+func (h *Handler) SetInlayHintResolveHandler(handler InlayHintResolveHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.inlayHintResolve = handler
+	h.messageHandlers[MethodInlayHintResolve] = createInlayHintResolveHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1487,6 +1503,24 @@ func createInlayHintHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.inlayHint(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createInlayHintResolveHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.inlayHintResolve != nil {
+				var params InlayHint
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.inlayHintResolve(ctx, &params)
 				}
 			}
 			return

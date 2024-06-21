@@ -2295,6 +2295,79 @@ func (s *HandlerTestSuite) Test_calls_inlay_hint_request_handler() {
 	s.Require().Equal(inlayHints, returnedInlayHints)
 }
 
+func (s *HandlerTestSuite) Test_calls_inlay_hint_resolve_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	inlayHint := &InlayHint{
+		Position: Position{
+			Line:      10,
+			Character: 5,
+		},
+		Label: "TestHint",
+		Kind:  &InlayHintKindType,
+		Tooltip: MarkupContent{
+			Kind:  MarkupKindMarkdown,
+			Value: "TestHintTooltip",
+		},
+		TextEdits: []TextEdit{
+			{
+				Range: Range{
+					Start: Position{
+						Line:      10,
+						Character: 5,
+					},
+					End: Position{
+						Line:      10,
+						Character: 15,
+					},
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithInlayHintResolveHandler(
+			func(ctx *common.LSPContext, params *InlayHint) (*InlayHint, error) {
+				return inlayHint, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	inlayHintParams := InlayHint{
+		Position: Position{
+			Line:      10,
+			Character: 5,
+		},
+		Label: "TestHint",
+		Kind:  &InlayHintKindType,
+		Tooltip: MarkupContent{
+			Kind:  MarkupKindMarkdown,
+			Value: "TestHintTooltip",
+		},
+	}
+
+	returnedInlayHint := &InlayHint{}
+	err = clientLSPContext.Call(
+		MethodInlayHintResolve,
+		inlayHintParams,
+		&returnedInlayHint,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(inlayHint, returnedInlayHint)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
