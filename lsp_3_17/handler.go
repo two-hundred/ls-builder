@@ -69,6 +69,7 @@ type Handler struct {
 	inlayHint                  InlayHintHandlerFunc
 	inlayHintResolve           InlayHintResolveHandlerFunc
 	inlineValue                InlineValueHandlerFunc
+	moniker                    MonikerHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -390,6 +391,13 @@ func WithInlayHintResolveHandler(handler InlayHintResolveHandlerFunc) HandlerOpt
 func WithInlineValueHandler(handler InlineValueHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetInlineValueHandler(handler)
+	}
+}
+
+// WithMonikerHandler sets the handler for the `textDocument/moniker` request.
+func WithMonikerHandler(handler MonikerHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetMonikerHandler(handler)
 	}
 }
 
@@ -757,6 +765,14 @@ func (h *Handler) SetInlineValueHandler(handler InlineValueHandlerFunc) {
 	defer h.mu.Unlock()
 	h.inlineValue = handler
 	h.messageHandlers[MethodInlineValue] = createInlineValueHandler(h)
+}
+
+// SetMonikerHandler sets the handler for the `textDocument/moniker` request.
+func (h *Handler) SetMonikerHandler(handler MonikerHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.moniker = handler
+	h.messageHandlers[MethodMoniker] = createMonikerHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1555,6 +1571,24 @@ func createInlineValueHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.inlineValue(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createMonikerHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.moniker != nil {
+				var params MonikerParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.moniker(ctx, &params)
 				}
 			}
 			return

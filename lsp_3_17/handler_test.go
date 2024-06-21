@@ -2471,6 +2471,56 @@ func (s *HandlerTestSuite) Test_calls_inline_value_request_handler() {
 	s.Require().Equal(inlineValues, returnedInlineValues)
 }
 
+func (s *HandlerTestSuite) Test_calls_moniker_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	monikers := []Moniker{
+		{
+			Scheme:     "tsc",
+			Identifier: "test-moniker",
+			Unique:     UniquenessLevelGlobal,
+			Kind:       &MonikerKindImport,
+		},
+	}
+	serverHandler := NewHandler(
+		WithMonikerHandler(
+			func(ctx *common.LSPContext, params *MonikerParams) ([]Moniker, error) {
+				return monikers, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	monikerParams := MonikerParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_moniker.go",
+			},
+		},
+	}
+
+	returnedMonikers := []Moniker{}
+	err = clientLSPContext.Call(
+		MethodMoniker,
+		monikerParams,
+		&returnedMonikers,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(monikers, returnedMonikers)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

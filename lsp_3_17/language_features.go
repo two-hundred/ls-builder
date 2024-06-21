@@ -1298,3 +1298,71 @@ type InlineValueEvaluatableExpression struct {
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_inlineValue_refresh
 
 const MethodInlineValueRefresh = Method("workspace/inlineValue/refresh")
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_moniker
+
+const MethodMoniker = Method("textDocument/moniker")
+
+// MonikerHandlerFunc is the function signature for the textDocument/moniker
+// request handler that can be registered for a language server.
+type MonikerHandlerFunc func(
+	ctx *common.LSPContext,
+	params *MonikerParams,
+) ([]Moniker, error)
+
+// MonikerParams contains the textDocument/moniker request parameters.
+type MonikerParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+	PartialResultParams
+}
+
+// Moniker definition to match the LSIF 0.5 moniker definition.
+type Moniker struct {
+	// The scheme of the moniker, e.g. tsc or .NET
+	Scheme string `json:"scheme"`
+
+	// The identifier of the moniker. The value is opaque in LSIF however
+	// schema owners are allowed to define the structure if they want.
+	Identifier string `json:"identifier"`
+
+	// The scope in which the moniker is unique.
+	Unique UniquenessLevel `json:"unique"`
+
+	// The moniker kind, if known.
+	Kind *MonikerKind `json:"kind,omitempty"`
+}
+
+type MonikerKind = string
+
+var (
+	// The moniker represents a symbol that is imported into a project
+	MonikerKindImport MonikerKind = "import"
+
+	// The moniker represents a symbol that is exported from a project
+	MonikerKindExport MonikerKind = "export"
+
+	// The moniker represents a symbol that is local to a project (e.g. a local
+	// variable of a function, a class not visible outside the project, ...)
+	MonikerKindLocal MonikerKind = "local"
+)
+
+// UniquenessLevel defines in which scope the monikor is unique.
+type UniquenessLevel = string
+
+const (
+	// The moniker is only unique inside a document.
+	UniquenessLevelDocument UniquenessLevel = "document"
+
+	// The moniker is unique inside a project for which a dump was created.
+	UniquenessLevelProject UniquenessLevel = "project"
+
+	// The moniker is unique inside the group to which a project belongs.
+	UniquenessLevelGroup UniquenessLevel = "group"
+
+	// The moniker is unique inside the moniker scheme.
+	UniquenessLevelScheme UniquenessLevel = "scheme"
+
+	// The moniker is globally unique.
+	UniquenessLevelGlobal UniquenessLevel = "global"
+)
