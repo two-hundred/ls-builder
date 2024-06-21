@@ -1140,3 +1140,7 @@ type InlayHintResolveHandlerFunc func(
 	ctx *common.LSPContext,
 	params *InlayHint,
 ) (*InlayHint, error)
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_inlayHint_refresh
+
+const MethodInlayHintRefresh = Method("workspace/inlayHint/refresh")

@@ -65,3 +65,9 @@ func (d *Dispatcher) CodeLensRefresh() error {
 func (d *Dispatcher) SemanticTokensRefresh() error {
 	return d.ctx.Call(MethodSemanticTokensRefresh, nil, nil)
 }
+
+// InlayHintRefresh requests the client to refresh inlay hints
+// currently shown in editors.
+func (d *Dispatcher) InlayHintRefresh() error {
+	return d.ctx.Call(MethodInlayHintRefresh, nil, nil)
+}
