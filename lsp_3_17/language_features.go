@@ -1854,3 +1854,15 @@ type CompletionItemLabelDetails struct {
 	// names or file path.
 	Description *string `json:"description,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionItem_resolve
+
+const MethodCompletionItemResolve = Method("completionItem/resolve")
+
+// CompletionItemResolveHandlerFunc is the function signature for the
+// completionItem/resolve request handler that can be registered for a
+// language server.
+type CompletionItemResolveHandlerFunc func(
+	ctx *common.LSPContext,
+	params *CompletionItem,
+) (*CompletionItem, error)

@@ -2629,6 +2629,120 @@ func (s *HandlerTestSuite) Test_calls_completion_request_handler() {
 	s.Require().Equal(completionList, returnedCompletionList)
 }
 
+func (s *HandlerTestSuite) Test_calls_completion_item_resolve_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	labelDetail := "The label for the custom completion item unique to the test language server"
+	detail := "A custom completion item unique to the test language server"
+	insertText := "Insert custom completion item"
+	completionItemKind := CompletionItemKindClass
+	completionItem := &CompletionItem{
+		Label: "CompletionItem",
+		LabelDetails: &CompletionItemLabelDetails{
+			Detail: &labelDetail,
+		},
+		Kind: &completionItemKind,
+		Tags: []CompletionItemTag{
+			CompletionItemTagDeprecated,
+		},
+		Detail: &detail,
+		Documentation: MarkupContent{
+			Kind:  MarkupKindMarkdown,
+			Value: "# Completion Item Info\nSome additional information about the completion item",
+		},
+		InsertText:       &insertText,
+		InsertTextFormat: &InsertTextFormatPlainText,
+		InsertTextMode:   &InsertTextModeAsIs,
+		TextEdit: InsertReplaceEdit{
+			Insert: &Range{
+				Start: Position{
+					Line:      1403,
+					Character: 50,
+				},
+				End: Position{
+					Line:      1760,
+					Character: 100,
+				},
+			},
+			Replace: &Range{
+				Start: Position{
+					Line:      1203,
+					Character: 51,
+				},
+				End: Position{
+					Line:      1657,
+					Character: 110,
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithCompletionItemResolveHandler(
+			func(ctx *common.LSPContext, params *CompletionItem) (*CompletionItem, error) {
+				return completionItem, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	competionItemResolveParams := &CompletionItem{
+		Label: "CompletionItem",
+		// Input params without label details which will be resolved by the handler.
+		Kind: &completionItemKind,
+		Tags: []CompletionItemTag{
+			CompletionItemTagDeprecated,
+		},
+		Detail: &detail,
+		// Input is without documentation, this will be resolved by the handler.
+		InsertText:       &insertText,
+		InsertTextFormat: &InsertTextFormatPlainText,
+		InsertTextMode:   &InsertTextModeAsIs,
+		TextEdit: InsertReplaceEdit{
+			Insert: &Range{
+				Start: Position{
+					Line:      1403,
+					Character: 50,
+				},
+				End: Position{
+					Line:      1760,
+					Character: 100,
+				},
+			},
+			Replace: &Range{
+				Start: Position{
+					Line:      1203,
+					Character: 51,
+				},
+				End: Position{
+					Line:      1657,
+					Character: 110,
+				},
+			},
+		},
+	}
+
+	returnedCompletionItem := &CompletionItem{}
+	err = clientLSPContext.Call(
+		MethodCompletionItemResolve,
+		competionItemResolveParams,
+		&returnedCompletionItem,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(completionItem, returnedCompletionItem)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

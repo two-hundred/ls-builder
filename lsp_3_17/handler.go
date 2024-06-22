@@ -71,6 +71,7 @@ type Handler struct {
 	inlineValue                InlineValueHandlerFunc
 	moniker                    MonikerHandlerFunc
 	completion                 CompletionHandlerFunc
+	completionItemResolve      CompletionItemResolveHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -406,6 +407,13 @@ func WithMonikerHandler(handler MonikerHandlerFunc) HandlerOption {
 func WithCompletionHandler(handler CompletionHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetCompletionHandler(handler)
+	}
+}
+
+// WithCompletionItemResolveHandler sets the handler for the `completionItem/resolve` request.
+func WithCompletionItemResolveHandler(handler CompletionItemResolveHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetCompletionItemResolveHandler(handler)
 	}
 }
 
@@ -789,6 +797,14 @@ func (h *Handler) SetCompletionHandler(handler CompletionHandlerFunc) {
 	defer h.mu.Unlock()
 	h.completion = handler
 	h.messageHandlers[MethodCompletion] = createCompletionHandler(h)
+}
+
+// SetCompletionItemResolveHandler sets the handler for the `completionItem/resolve` request.
+func (h *Handler) SetCompletionItemResolveHandler(handler CompletionItemResolveHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.completionItemResolve = handler
+	h.messageHandlers[MethodCompletionItemResolve] = createCompletionItemResolveHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1623,6 +1639,24 @@ func createCompletionHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.completion(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createCompletionItemResolveHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.completionItemResolve != nil {
+				var params CompletionItem
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.completionItemResolve(ctx, &params)
 				}
 			}
 			return
