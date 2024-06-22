@@ -77,3 +77,9 @@ func (d *Dispatcher) InlayHintRefresh() error {
 func (d *Dispatcher) InlineValueRefresh() error {
 	return d.ctx.Call(MethodInlineValueRefresh, nil, nil)
 }
+
+// PublishDiagnostics sends diagnostics from the server to the client to signal
+// results of validation runs.
+func (d *Dispatcher) PublishDiagnostics(params PublishDiagnosticsParams) error {
+	return d.ctx.Notify(MethodPublishDiagnostics, params)
+}

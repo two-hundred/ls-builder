@@ -1866,3 +1866,22 @@ type CompletionItemResolveHandlerFunc func(
 	ctx *common.LSPContext,
 	params *CompletionItem,
 ) (*CompletionItem, error)
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_publishDiagnostics
+
+const MethodPublishDiagnostics = Method("textDocument/publishDiagnostics")
+
+// PublishDiagnosticsParams contains the parameters for the textDocument/publishDiagnostics notification.
+type PublishDiagnosticsParams struct {
+	// The URI for which diagnostic information is reported.
+	URI DocumentURI `json:"uri"`
+
+	// Optional the version number of the document the diagnostics are published
+	// for.
+	//
+	// @since 3.15.0
+	Version *Integer `json:"version,omitempty"`
+
+	// An array of diagnostic information items.
+	Diagnostics []Diagnostic `json:"diagnostics"`
+}
