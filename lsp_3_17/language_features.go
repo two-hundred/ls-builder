@@ -2295,3 +2295,7 @@ type WorkspaceUnchangedDocumentDiagnosticReport struct {
 	// If the document is not marked as upen `null` can be provided.
 	Version *Integer `json:"version,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#diagnostic_refresh
+
+const MethodDiagnosticsRefresh = Method("workspace/diagnostic/refresh")

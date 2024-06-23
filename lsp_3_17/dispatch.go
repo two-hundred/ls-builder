@@ -83,3 +83,10 @@ func (d *Dispatcher) InlineValueRefresh() error {
 func (d *Dispatcher) PublishDiagnostics(params PublishDiagnosticsParams) error {
 	return d.ctx.Notify(MethodPublishDiagnostics, params)
 }
+
+// DiagnosticsRefresh requests that the client refreshes all needed document
+// and workspace diagnostics. This is useful if the server detects a project wide
+// configuration change which requires a re-calculation of all diagnostics.
+func (d *Dispatcher) DiagnosticsRefresh() error {
+	return d.ctx.Call(MethodDiagnosticsRefresh, nil, nil)
+}
