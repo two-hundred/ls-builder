@@ -27,7 +27,10 @@ func (s *Server) handle(ctx context.Context, connection *jsonrpc2.Conn, request 
 	// Note: jsonrpc2 will not get to this point if request.Params is not valid JSON,
 	// so there is no need to handle jsonrpc2.CodeParseErrors here.
 	result, validMethod, validParams, err := s.handler.Handle(lspContext)
-	if !validMethod {
+	if jsonrpcErr, isJSONRPCError := err.(*jsonrpc2.Error); isJSONRPCError {
+		// If a JSON-RPC error has already been created, return it directly.
+		return nil, jsonrpcErr
+	} else if !validMethod {
 		return nil, &jsonrpc2.Error{
 			Code:    jsonrpc2.CodeMethodNotFound,
 			Message: fmt.Sprintf("method not supported: %s", request.Method),

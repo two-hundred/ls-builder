@@ -1885,3 +1885,272 @@ type PublishDiagnosticsParams struct {
 	// An array of diagnostic information items.
 	Diagnostics []Diagnostic `json:"diagnostics"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_pullDiagnostics
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_diagnostic
+
+// MethodDiagnostic is the method for the textDocument/diagnostic request
+// made from the client to "pull" diagnostics for a specific document
+// from the server.
+const MethodDocumentDiagnostic = Method("textDocument/diagnostic")
+
+// DocumentDiagnosticHandlerFunc is the function signature for the textDocument/diagnostic
+// request handler that can be registered for a language server.
+//
+// returns: RelatedFullDocumentDiagnosticReport | RelatedUnchangedDocumentDiagnosticReport
+// | DocumentDiagnosticReportPartialResult
+//
+// Note: When returning a server cancellation error response (@since 3.17.0),
+// an instance of the `ErrorWithData` error type should be returned containing the
+// `ServerCancelled` code and the data of the `DiagnosticServerCancellationData` type.
+//
+// For example:
+//
+//	serverCancelled := "ServerCancelled"
+//	return nil, &ErrorWithData{
+//		Code: &IntOrString{ StrVal: &serverCancelled },
+//		Data: &DiagnosticServerCancellationData{
+//			RetriggerRequest: false,
+//		},
+//	}
+type DocumentDiagnosticHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DocumentDiagnosticParams,
+) (any, error)
+
+// DocumentDiagnosticParams contains the parameters for the
+// textDocument/diagnostic request.
+type DocumentDiagnosticParams struct {
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The additional identifier provided during registration.
+	Identifier *string `json:"identifier,omitempty"`
+
+	// The result id of a previous response if provided.
+	PreviousResultID *string `json:"previousResultId,omitempty"`
+}
+
+// A diagnostic report with a full set of problems.
+//
+// @since 3.17.0
+type FullDocumentDiagnosticReport struct {
+	// A full document diagnostic report.
+	// Expected to be DocumentDiagnosticReportKindFull.
+	Kind DocumentDiagnosticReportKind `json:"kind"`
+
+	// An optional result id. If provided, it will be sent on the next
+	// diagnostic request for the same document.
+	ResultID *string `json:"resultId,omitempty"`
+
+	// The actual items.
+	Items []Diagnostic `json:"items"`
+}
+
+// DocumentDiagnosticReportKind represents the available
+// document diagnostic report kinds.
+type DocumentDiagnosticReportKind = string
+
+const (
+	// DocumentDiagnosticReportKindFull represents a diagnostic report
+	// with a full set of problems.
+	DocumentDiagnosticReportKindFull DocumentDiagnosticReportKind = "full"
+
+	// DocumentDiagnosticReportKindUnchanged represents a diagnostic report
+	// indicating that the last returned report is still accurate.
+	DocumentDiagnosticReportKindUnchanged DocumentDiagnosticReportKind = "unchanged"
+)
+
+// A diagnostic report indicating that the last returned
+// report is still accurate.
+//
+// @since 3.17.0
+type UnchangedDocumentDiagnosticReport struct {
+	// A document diagnostic report indicating
+	// no changes to the last result. A server can
+	// only return `unchanged` if result ids are
+	// provided.
+	// Expected to be DocumentDiagnosticReportKindUnchanged.
+	Kind DocumentDiagnosticReportKind `json:"kind"`
+
+	// A result id which will be sent on the next
+	// diagnostic request for the same document.
+	ResultID string `json:"resultId"`
+}
+
+// A full diagnostic report with a set of related documents.
+//
+// @since 3.17.0
+type RelatedFullDocumentDiagnosticReport struct {
+	FullDocumentDiagnosticReport
+
+	// Diagnostics of related documents. This information is useful
+	// in programming languages where code in a file A can generate
+	// diagnostics in a file B which A depends on. An example of
+	// such a language is C/C++ where marco definitions in a file
+	// a.cpp and result in errors in a header file b.hpp.
+	//
+	// @since 3.17.0
+	//
+	// map[string](FullDocumentDiagnosticReport | UnchangedDocumentDiagnosticReport)
+	RelatedDocuments map[string]any `json:"relatedDocuments,omitempty"`
+}
+
+type relatedFullDocumentDiagnosticReportIntermediary struct {
+	FullDocumentDiagnosticReport
+
+	RelatedDocuments map[string]json.RawMessage `json:"relatedDocuments,omitempty"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (r *RelatedFullDocumentDiagnosticReport) UnmarshalJSON(data []byte) error {
+	var value relatedFullDocumentDiagnosticReportIntermediary
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		return err
+	}
+
+	r.FullDocumentDiagnosticReport = value.FullDocumentDiagnosticReport
+	r.RelatedDocuments = map[string]any{}
+	for key, raw := range value.RelatedDocuments {
+		if err := r.unmarshalRelatedDocuments(key, raw); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RelatedFullDocumentDiagnosticReport) unmarshalRelatedDocuments(key string, raw json.RawMessage) error {
+	var full FullDocumentDiagnosticReport
+	if err := json.Unmarshal(raw, &full); err == nil && full.Kind == DocumentDiagnosticReportKindFull {
+		r.RelatedDocuments[key] = full
+		return nil
+	}
+
+	var unchanged UnchangedDocumentDiagnosticReport
+	err := json.Unmarshal(raw, &unchanged)
+	if err == nil && full.Kind == DocumentDiagnosticReportKindUnchanged {
+		r.RelatedDocuments[key] = unchanged
+		return nil
+	}
+
+	if err == nil && full.Kind != DocumentDiagnosticReportKindUnchanged {
+		return ErrInvalidDocumentDiagnosticReportKind
+	}
+
+	return err
+}
+
+// An unchanged diagnostic report with a set of related documents.
+//
+// @since 3.17.0
+type RelatedUnchangedDocumentDiagnosticReport struct {
+	UnchangedDocumentDiagnosticReport
+
+	// Diagnostics of related documents. This information is useful
+	// in programming languages where code in a file A can generate
+	// diagnostics in a file B which A depends on. An example of
+	// such a language is C/C++ where marco definitions in a file
+	// a.cpp and result in errors in a header file b.hpp.
+	//
+	// @since 3.17.0
+	//
+	// map[string](FullDocumentDiagnosticReport | UnchangedDocumentDiagnosticReport)
+	RelatedDocuments map[string]any `json:"relatedDocuments,omitempty"`
+}
+
+type relatedUnchangedDocumentDiagnosticReportIntermediary struct {
+	UnchangedDocumentDiagnosticReport
+
+	RelatedDocuments map[string]json.RawMessage `json:"relatedDocuments,omitempty"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (r *RelatedUnchangedDocumentDiagnosticReport) UnmarshalJSON(data []byte) error {
+	var value relatedUnchangedDocumentDiagnosticReportIntermediary
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		return err
+	}
+
+	r.UnchangedDocumentDiagnosticReport = value.UnchangedDocumentDiagnosticReport
+	r.RelatedDocuments = map[string]any{}
+	for key, raw := range value.RelatedDocuments {
+		if err := r.unmarshalRelatedDocuments(key, raw); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RelatedUnchangedDocumentDiagnosticReport) unmarshalRelatedDocuments(key string, raw json.RawMessage) error {
+	var full FullDocumentDiagnosticReport
+	if err := json.Unmarshal(raw, &full); err == nil && full.Kind == DocumentDiagnosticReportKindFull {
+		r.RelatedDocuments[key] = full
+		return nil
+	}
+
+	var unchanged UnchangedDocumentDiagnosticReport
+	err := json.Unmarshal(raw, &unchanged)
+	if err == nil && full.Kind == DocumentDiagnosticReportKindUnchanged {
+		r.RelatedDocuments[key] = unchanged
+		return nil
+	}
+
+	if err == nil && full.Kind != DocumentDiagnosticReportKindUnchanged {
+		return ErrInvalidDocumentDiagnosticReportKind
+	}
+
+	return err
+}
+
+// A partial result for a document diagnostic report.
+//
+// @since 3.17.0
+type DocumentDiagnosticReportPartialResult struct {
+	// map[string](FullDocumentDiagnosticReport | UnchangedDocumentDiagnosticReport)
+	RelatedDocuments map[string]any `json:"relatedDocuments"`
+}
+
+type documentDiagnosticReportPartialResultIntermediary struct {
+	RelatedDocuments map[string]json.RawMessage `json:"relatedDocuments,omitempty"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (r *DocumentDiagnosticReportPartialResult) UnmarshalJSON(data []byte) error {
+	var value documentDiagnosticReportPartialResultIntermediary
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		return err
+	}
+
+	r.RelatedDocuments = map[string]any{}
+	for key, raw := range value.RelatedDocuments {
+		if err := r.unmarshalRelatedDocuments(key, raw); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *DocumentDiagnosticReportPartialResult) unmarshalRelatedDocuments(key string, raw json.RawMessage) error {
+	var full FullDocumentDiagnosticReport
+	if err := json.Unmarshal(raw, &full); err == nil && full.Kind == DocumentDiagnosticReportKindFull {
+		r.RelatedDocuments[key] = full
+		return nil
+	}
+
+	var unchanged UnchangedDocumentDiagnosticReport
+	err := json.Unmarshal(raw, &unchanged)
+	if err == nil && full.Kind == DocumentDiagnosticReportKindUnchanged {
+		r.RelatedDocuments[key] = unchanged
+		return nil
+	}
+
+	if err == nil && full.Kind != DocumentDiagnosticReportKindUnchanged {
+		return ErrInvalidDocumentDiagnosticReportKind
+	}
+
+	return err
+}

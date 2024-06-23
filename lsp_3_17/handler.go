@@ -72,6 +72,7 @@ type Handler struct {
 	moniker                    MonikerHandlerFunc
 	completion                 CompletionHandlerFunc
 	completionItemResolve      CompletionItemResolveHandlerFunc
+	documentDiagnostics        DocumentDiagnosticHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -414,6 +415,13 @@ func WithCompletionHandler(handler CompletionHandlerFunc) HandlerOption {
 func WithCompletionItemResolveHandler(handler CompletionItemResolveHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetCompletionItemResolveHandler(handler)
+	}
+}
+
+// WithDocumentDiagnosticsHandler sets the handler for the `textDocument/diagnostics` request.
+func WithDocumentDiagnosticsHandler(handler DocumentDiagnosticHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentDiagnosticsHandler(handler)
 	}
 }
 
@@ -805,6 +813,14 @@ func (h *Handler) SetCompletionItemResolveHandler(handler CompletionItemResolveH
 	defer h.mu.Unlock()
 	h.completionItemResolve = handler
 	h.messageHandlers[MethodCompletionItemResolve] = createCompletionItemResolveHandler(h)
+}
+
+// SetDocumentDiagnosticsHandler sets the handler for the `textDocument/diagnostics` request.
+func (h *Handler) SetDocumentDiagnosticsHandler(handler DocumentDiagnosticHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentDiagnostics = handler
+	h.messageHandlers[MethodDocumentDiagnostic] = createDocumentDiagnosticsHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1657,6 +1673,24 @@ func createCompletionItemResolveHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.completionItemResolve(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentDiagnosticsHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.documentDiagnostics != nil {
+				var params DocumentDiagnosticParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentDiagnostics(ctx, &params)
 				}
 			}
 			return
