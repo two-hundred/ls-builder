@@ -1932,7 +1932,8 @@ type DocumentDiagnosticParams struct {
 	PreviousResultID *string `json:"previousResultId,omitempty"`
 }
 
-// A diagnostic report with a full set of problems.
+// FullDocumentDiagnosticReport is a diagnostic report with a
+// full set of problems.
 //
 // @since 3.17.0
 type FullDocumentDiagnosticReport struct {
@@ -1962,8 +1963,8 @@ const (
 	DocumentDiagnosticReportKindUnchanged DocumentDiagnosticReportKind = "unchanged"
 )
 
-// A diagnostic report indicating that the last returned
-// report is still accurate.
+// UnchangedDocumentDiagnosticReport is a diagnostic report indicating
+// that the last returned report is still accurate.
 //
 // @since 3.17.0
 type UnchangedDocumentDiagnosticReport struct {
@@ -1979,7 +1980,8 @@ type UnchangedDocumentDiagnosticReport struct {
 	ResultID string `json:"resultId"`
 }
 
-// A full diagnostic report with a set of related documents.
+// RelatedFullDocumentDiagnosticReport is a full diagnostic report
+// with a set of related documents.
 //
 // @since 3.17.0
 type RelatedFullDocumentDiagnosticReport struct {
@@ -2042,7 +2044,8 @@ func (r *RelatedFullDocumentDiagnosticReport) unmarshalRelatedDocuments(key stri
 	return err
 }
 
-// An unchanged diagnostic report with a set of related documents.
+// RelatedUnchangedDocumentDiagnosticReport is an unchanged
+// diagnostic report with a set of related documents.
 //
 // @since 3.17.0
 type RelatedUnchangedDocumentDiagnosticReport struct {
@@ -2105,7 +2108,8 @@ func (r *RelatedUnchangedDocumentDiagnosticReport) unmarshalRelatedDocuments(key
 	return err
 }
 
-// A partial result for a document diagnostic report.
+// DocumentDiagnosticReportPartialResult is a partial result
+// for a document diagnostic report.
 //
 // @since 3.17.0
 type DocumentDiagnosticReportPartialResult struct {
@@ -2153,4 +2157,141 @@ func (r *DocumentDiagnosticReportPartialResult) unmarshalRelatedDocuments(key st
 	}
 
 	return err
+}
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_diagnostic
+
+const MethodWorkspaceDiagnostic = Method("workspace/diagnostic")
+
+// WorkspaceDiagnosticHandlerFunc is the function signature for the
+// workspace/diagnostic request handler that can be registered for a language server.
+//
+// Structurally, `WorkspaceDiagnosticReportPartialResult` is exactly the same
+// as `WorkspaceDiagnosticReport`, so you can use the same struct to return
+// partial or full results in the response to the client.
+//
+// Note: When returning a server cancellation error response (@since 3.17.0),
+// an instance of the `ErrorWithData` error type should be returned containing the
+// `ServerCancelled` code and the data of the `DiagnosticServerCancellationData` type.
+//
+// For example:
+//
+//	serverCancelled := "ServerCancelled"
+//	return nil, &ErrorWithData{
+//		Code: &IntOrString{ StrVal: &serverCancelled },
+//		Data: &DiagnosticServerCancellationData{
+//			RetriggerRequest: false,
+//		},
+//	}
+type WorkspaceDiagnosticHandlerFunc func(
+	ctx *common.LSPContext,
+	params *WorkspaceDiagnosticParams,
+) (*WorkspaceDiagnosticReport, error)
+
+// WorkspaceDiagnosticParams holds parameters
+// of the workspace diagnostic request.
+//
+// @since 3.17.0
+type WorkspaceDiagnosticParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// The additional identifier provided during registration.
+	Identifier *string `json:"identifier,omitempty"`
+
+	// The currently known diagnostic reports with their
+	// previous result ids.
+	PreviousResultIDs []PreviousResultID `json:"previousResultIds"`
+}
+
+// PreviousResultID is a previous result id in a workspace pull request.
+//
+// @since 3.17.0
+type PreviousResultID struct {
+	// The URI for which the client knows a result id.
+	URI DocumentURI `json:"uri"`
+
+	// The value of the previous result id.
+	Value string `json:"value"`
+}
+
+// WorkspaceDiagnosticReport holds a workspace diagnostic report
+// returned as the response to a workspace/diagnostic request.
+//
+// @since 3.17.0
+type WorkspaceDiagnosticReport struct {
+	// [](WorkspaceFullDocumentDiagnosticReport | WorkspaceUnchangedDocumentDiagnosticReport)
+	Items []any `json:"items"`
+}
+
+type workspaceDiagnosticReportIntermediary struct {
+	Items []json.RawMessage `json:"items"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (r *WorkspaceDiagnosticReport) UnmarshalJSON(data []byte) error {
+	var value workspaceDiagnosticReportIntermediary
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		return err
+	}
+
+	r.Items = []any{}
+	for _, raw := range value.Items {
+		if err := r.unmarshalItem(raw); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *WorkspaceDiagnosticReport) unmarshalItem(raw json.RawMessage) error {
+	var full WorkspaceFullDocumentDiagnosticReport
+	if err := json.Unmarshal(raw, &full); err == nil && full.Kind == DocumentDiagnosticReportKindFull {
+		r.Items = append(r.Items, full)
+		return nil
+	}
+
+	var unchanged WorkspaceUnchangedDocumentDiagnosticReport
+	err := json.Unmarshal(raw, &unchanged)
+	if err == nil && full.Kind == DocumentDiagnosticReportKindUnchanged {
+		r.Items = append(r.Items, unchanged)
+		return nil
+	}
+
+	if err == nil && full.Kind != DocumentDiagnosticReportKindUnchanged {
+		return ErrInvalidDocumentDiagnosticReportKind
+	}
+
+	return err
+}
+
+// WorkspaceFullDocumentDiagnosticReport holds a full diagnostic report
+// for a workspace diagnostic result.
+//
+// @since 3.17.0
+type WorkspaceFullDocumentDiagnosticReport struct {
+	FullDocumentDiagnosticReport
+
+	// The URI for which diagnostic information is reported.
+	URI DocumentURI `json:"uri"`
+
+	// The version number for which the diagnostics are reported.
+	// If the document is not marked as upen `null` can be provided.
+	Version *Integer `json:"version,omitempty"`
+}
+
+// WorkspaceUnchangedDocumentDiagnosticReport holds an unchanged diagnostic
+// report for a workspace diagnostic result.
+//
+// @since 3.17.0
+type WorkspaceUnchangedDocumentDiagnosticReport struct {
+	UnchangedDocumentDiagnosticReport
+
+	// The URI for which diagnostic information is reported.
+	URI DocumentURI `json:"uri"`
+
+	// The version number for which the diagnostics are reported.
+	// If the document is not marked as upen `null` can be provided.
+	Version *Integer `json:"version,omitempty"`
 }

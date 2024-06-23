@@ -73,6 +73,7 @@ type Handler struct {
 	completion                 CompletionHandlerFunc
 	completionItemResolve      CompletionItemResolveHandlerFunc
 	documentDiagnostics        DocumentDiagnosticHandlerFunc
+	workspaceDiagnostics       WorkspaceDiagnosticHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -422,6 +423,13 @@ func WithCompletionItemResolveHandler(handler CompletionItemResolveHandlerFunc) 
 func WithDocumentDiagnosticsHandler(handler DocumentDiagnosticHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetDocumentDiagnosticsHandler(handler)
+	}
+}
+
+// WithWorkspaceDiagnosticHandler sets the handler for the `workspace/diagnostics` request.
+func WithWorkspaceDiagnosticHandler(handler WorkspaceDiagnosticHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetWorkspaceDiagnosticHandler(handler)
 	}
 }
 
@@ -821,6 +829,14 @@ func (h *Handler) SetDocumentDiagnosticsHandler(handler DocumentDiagnosticHandle
 	defer h.mu.Unlock()
 	h.documentDiagnostics = handler
 	h.messageHandlers[MethodDocumentDiagnostic] = createDocumentDiagnosticsHandler(h)
+}
+
+// SetWorkspaceDiagnosticHandler sets the handler for the `workspace/diagnostics` request.
+func (h *Handler) SetWorkspaceDiagnosticHandler(handler WorkspaceDiagnosticHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.workspaceDiagnostics = handler
+	h.messageHandlers[MethodWorkspaceDiagnostic] = createWorkspaceDiagnosticHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1691,6 +1707,24 @@ func createDocumentDiagnosticsHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.documentDiagnostics(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createWorkspaceDiagnosticHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.workspaceDiagnostics != nil {
+				var params WorkspaceDiagnosticParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.workspaceDiagnostics(ctx, &params)
 				}
 			}
 			return
