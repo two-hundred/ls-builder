@@ -2924,3 +2924,25 @@ type DocumentOnTypeFormattingParams struct {
 	// The formatting options.
 	Options FormattingOptions `json:"options"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_rename
+
+const MethodDocumentRename = Method("textDocument/rename")
+
+// DocumentRenameHandlerFunc is the function signature for the textDocument/rename
+// request handler that can be registered for a language server.
+type DocumentRenameHandlerFunc func(
+	ctx *common.LSPContext,
+	params *RenameParams,
+) (*WorkspaceEdit, error)
+
+// RenameParams contains parameters for the textDocument/rename requests.
+type RenameParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+
+	// The new name of the symbol. If the given name is not valid the
+	// request must return a [ResponseError](#ResponseError) with an
+	// appropriate message set.
+	NewName string `json:"newName"`
+}

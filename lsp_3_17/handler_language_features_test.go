@@ -2508,3 +2508,42 @@ func (s *HandlerTestSuite) Test_calls_document_on_type_formatting_request_handle
 	s.Require().NoError(err)
 	s.Require().Equal(textEdits, returnedTextEdits)
 }
+
+func (s *HandlerTestSuite) Test_calls_document_rename_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	workspaceEdit := WorkspaceEdit{}
+	serverHandler := NewHandler(
+		WithDocumentRenameHandler(
+			func(ctx *common.LSPContext, params *RenameParams) (*WorkspaceEdit, error) {
+				return &workspaceEdit, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	renameParams := &RenameParams{
+		NewName: "userv2.go",
+	}
+
+	returnedWorkspaceEdit := WorkspaceEdit{}
+	err = clientLSPContext.Call(
+		MethodDocumentRename,
+		renameParams,
+		&returnedWorkspaceEdit,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(workspaceEdit, returnedWorkspaceEdit)
+}
