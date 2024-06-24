@@ -2545,3 +2545,173 @@ const (
 	// triggered by the cursor moving or by the document content changing.
 	SignatureHelpTriggerKindContentChange SignatureHelpTriggerKind = 3
 )
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_codeAction
+
+const MethodCodeAction = Method("textDocument/codeAction")
+
+// CodeActionHandlerFunc is the function signature for the textDocument/codeAction
+// request handler that can be registered for a language server.
+type CodeActionHandlerFunc func(
+	ctx *common.LSPContext,
+	params *CodeActionParams,
+) ([]*CodeActionOrCommand, error)
+
+// CodeActionOrCommand represents a union type of a code action
+// or command.
+type CodeActionOrCommand struct {
+	CodeAction *CodeAction `json:"codeAction,omitempty"`
+	Command    *Command    `json:"command,omitempty"`
+}
+
+// Fulfils the json.Marshaler interface.
+func (c *CodeActionOrCommand) MarshalJSON() ([]byte, error) {
+	if c.CodeAction != nil {
+		return json.Marshal(c.CodeAction)
+	}
+	return json.Marshal(c.Command)
+}
+
+// Fulfils the json.Unmarsrhaler interface.
+func (c *CodeActionOrCommand) UnmarshalJSON(data []byte) error {
+	var cmdVal Command
+	if err := json.Unmarshal(data, &cmdVal); err == nil && cmdVal.Command != "" {
+		c.Command = &cmdVal
+		return nil
+	}
+
+	var actionVal CodeAction
+	err := json.Unmarshal(data, &actionVal)
+	if err == nil && actionVal.Title != "" {
+		c.CodeAction = &actionVal
+		return nil
+	}
+
+	if err == nil && actionVal.Title == "" {
+		return ErrInvalidCodeActionOrCommand
+	}
+
+	return err
+}
+
+// CodeActionParams contains the parameters for the textDocument/codeAction request.
+type CodeActionParams struct {
+	// The document in which the command was invoked.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The range for which the command was invoked.
+	Range Range `json:"range"`
+
+	// Context carrying additional information.
+	Context CodeActionContext `json:"context"`
+}
+
+// CodeActionContext  Contains additional diagnostic information
+// about the context in which a code action is run.
+type CodeActionContext struct {
+	// An array of diagnostics known on the client side overlapping the range
+	// provided to the `textDocument/codeAction` request. They are provided so
+	// that the server knows which errors are currently presented to the user
+	// for the given range. There is no guarantee that these accurately reflect
+	// the error state of the resource. The primary parameter
+	// to compute code actions is the provided range.
+	Diagnostics []Diagnostic `json:"diagnostics"`
+
+	// Requested kind of actions to return.
+	//
+	// Actions not of this kind are filtered out by the client before being
+	// shown. So servers can omit computing them.
+	Only []CodeActionKind `json:"only,omitempty"`
+
+	// The reason why code actions were requested.
+	//
+	// @since 3.17.0
+	TriggerKind *CodeActionTriggerKind `json:"triggerKind,omitempty"`
+}
+
+// CodeActionTriggerKind is the reason why code actions were requested.
+//
+// @since 3.17.0
+type CodeActionTriggerKind = Integer
+
+var (
+	// CodeActionTriggerKindInvoked is for code actions were explicitly
+	// requested by the user or by an extension.
+	CodeActionTriggerKindInvoked CodeActionTriggerKind = 1
+
+	// CodeActionTriggerKindAutomatic is for code actions were
+	// requested automatically.
+	//
+	// This typically happens when current selection in a file changes, but can
+	// also be triggered when file content changes.
+	CodeActionTriggerKindAutomatic CodeActionTriggerKind = 2
+)
+
+// CodeAction represents a change that can be performed in code, e.g. to fix
+// a problem or to refactor code.
+//
+// A CodeAction must set either `edit` and/or a `command`. If both are supplied,
+// the `edit` is applied first, then the `command` is executed.
+type CodeAction struct {
+	// A short, human-readable, title for this code action.
+	Title string `json:"title"`
+
+	// The kind of the code action.
+	//
+	// Used to filter code actions.
+	Kind *CodeActionKind `json:"kind,omitempty"`
+
+	// The diagnostics that this code action resolves.
+	Diagnostics []Diagnostic `json:"diagnostics,omitempty"`
+
+	// Marks this as a preferred action. Preferred actions are used by the
+	// `auto fix` command and can be targeted by keybindings.
+	//
+	// A quick fix should be marked preferred if it properly addresses the
+	// underlying error. A refactoring should be marked preferred if it is the
+	// most reasonable choice of actions to take.
+	//
+	// @since 3.15.0
+	IsPreferred *bool `json:"isPreferred,omitempty"`
+
+	// Marks that the code action cannot currently be applied.
+	//
+	// Clients should follow the following guidelines regarding disabled code
+	// actions:
+	//
+	// - Disabled code actions are not shown in automatic lightbulbs code
+	//   action menus.
+	//
+	// - Disabled actions are shown as faded out in the code action menu when
+	//   the user request a more specific type of code action, such as
+	//   refactorings.
+	//
+	// - If the user has a keybinding that auto applies a code action and only
+	//   a disabled code actions are returned, the client should show the user
+	//   an error message with `reason` in the editor.
+	//
+	// @since 3.16.0
+	Disabled *CodeActionDisabledReason `json:"disabled,omitempty"`
+
+	// The workspace edit this code action performs.
+	Edit *WorkspaceEdit `json:"edit,omitempty"`
+
+	// A command this code action executes. If a code action
+	// provides an edit and a command, first the edit is
+	// executed and then the command.
+	Command *Command `json:"command,omitempty"`
+
+	// A data entry field that is preserved on a code action between
+	// a `textDocument/codeAction` and a `codeAction/resolve` request.
+	//
+	// @since 3.16.0
+	Data LSPAny `json:"data,omitempty"`
+}
+
+// CodeActionDisabledReason is the reason why a code action is disabled.
+type CodeActionDisabledReason struct {
+	// Human readable description of why the code action is disabled.
+	//
+	// This is displayed in the code actions user interface.
+	Reason string `json:"reason"`
+}

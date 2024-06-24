@@ -2826,6 +2826,123 @@ func (s *HandlerTestSuite) Test_calls_signature_help_request_handler() {
 	s.Require().Equal(signatureHelp, returnedSignatureHelp)
 }
 
+func (s *HandlerTestSuite) Test_calls_code_action_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	codeAction1 := CodeActionKindQuickFix
+	severity1 := DiagnosticSeverityError
+	is1Preferred := true
+	diagnosticCode := "ErrorCode"
+	codeActions := []*CodeActionOrCommand{
+		{
+			CodeAction: &CodeAction{
+				Title: "TestCodeAction",
+				Kind:  &codeAction1,
+				Diagnostics: []Diagnostic{
+					{
+						Range: Range{
+							Start: Position{
+								Line:      205,
+								Character: 5,
+							},
+							End: Position{
+								Line:      205,
+								Character: 15,
+							},
+						},
+						Severity: &severity1,
+						Code: &IntOrString{
+							StrVal: &diagnosticCode,
+						},
+						Message: "Test Diagnostic Message",
+					},
+				},
+				IsPreferred: &is1Preferred,
+			},
+		},
+		{
+			Command: &Command{
+				Title:   "save",
+				Command: "save.command",
+				Arguments: []interface{}{
+					"file:///test_code_action.go",
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithCodeActionHandler(
+			func(ctx *common.LSPContext, params *CodeActionParams) ([]*CodeActionOrCommand, error) {
+				return codeActions, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	codeActionParams := CodeActionParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_code_action.go",
+		},
+		Range: Range{
+			Start: Position{
+				Line:      205,
+				Character: 5,
+			},
+			End: Position{
+				Line:      205,
+				Character: 15,
+			},
+		},
+		Context: CodeActionContext{
+			Diagnostics: []Diagnostic{
+				{
+					Range: Range{
+						Start: Position{
+							Line:      105,
+							Character: 5,
+						},
+						End: Position{
+							Line:      105,
+							Character: 23,
+						},
+					},
+					Severity: &severity1,
+					Code: &IntOrString{
+						StrVal: &diagnosticCode,
+					},
+					Message: "Test Diagnostic Message",
+				},
+			},
+			Only: []CodeActionKind{
+				CodeActionKindQuickFix,
+				CodeActionKindRefactor,
+			},
+			TriggerKind: &CodeActionTriggerKindAutomatic,
+		},
+	}
+
+	returnedCodeActions := []*CodeActionOrCommand{}
+	err = clientLSPContext.Call(
+		MethodCodeAction,
+		codeActionParams,
+		&returnedCodeActions,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(codeActions, returnedCodeActions)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

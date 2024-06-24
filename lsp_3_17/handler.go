@@ -75,6 +75,7 @@ type Handler struct {
 	documentDiagnostics        DocumentDiagnosticHandlerFunc
 	workspaceDiagnostics       WorkspaceDiagnosticHandlerFunc
 	signatureHelp              SignatureHelpHandlerFunc
+	codeAction                 CodeActionHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -438,6 +439,13 @@ func WithWorkspaceDiagnosticHandler(handler WorkspaceDiagnosticHandlerFunc) Hand
 func WithSignatureHelpHandler(handler SignatureHelpHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetSignatureHelpHandler(handler)
+	}
+}
+
+// WithCodeActionHandler sets the handler for the `textDocument/codeAction` request.
+func WithCodeActionHandler(handler CodeActionHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetCodeActionHandler(handler)
 	}
 }
 
@@ -853,6 +861,14 @@ func (h *Handler) SetSignatureHelpHandler(handler SignatureHelpHandlerFunc) {
 	defer h.mu.Unlock()
 	h.signatureHelp = handler
 	h.messageHandlers[MethodSignatureHelp] = createSignatureHelpHandler(h)
+}
+
+// SetCodeActionHandler sets the handler for the `textDocument/codeAction` request.
+func (h *Handler) SetCodeActionHandler(handler CodeActionHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.codeAction = handler
+	h.messageHandlers[MethodCodeAction] = createCodeActionHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1759,6 +1775,24 @@ func createSignatureHelpHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.signatureHelp(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createCodeActionHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.codeAction != nil {
+				var params CodeActionParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.codeAction(ctx, &params)
 				}
 			}
 			return

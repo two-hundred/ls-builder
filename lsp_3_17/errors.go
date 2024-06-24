@@ -13,4 +13,5 @@ type ErrorWithData struct {
 
 var (
 	ErrInvalidDocumentDiagnosticReportKind = errors.New("invalid document diagnostic report kind")
+	ErrInvalidCodeActionOrCommand          = errors.New("invalid code action or command")
 )
