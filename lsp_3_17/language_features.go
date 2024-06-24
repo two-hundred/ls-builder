@@ -2299,3 +2299,249 @@ type WorkspaceUnchangedDocumentDiagnosticReport struct {
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#diagnostic_refresh
 
 const MethodDiagnosticsRefresh = Method("workspace/diagnostic/refresh")
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_signatureHelp
+
+const MethodSignatureHelp = Method("textDocument/signatureHelp")
+
+// SignatureHelpHandlerFunc is the function signature for the textDocument/signatureHelp
+// request handler that can be registered for a language server.
+type SignatureHelpHandlerFunc func(
+	ctx *common.LSPContext,
+	params *SignatureHelpParams,
+) (*SignatureHelp, error)
+
+// SignatureHelpParams contains the parameters for the textDocument/signatureHelp request.
+type SignatureHelpParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+
+	// The signature help context. This is only available if the client
+	// specifies to send this using the client capability
+	// `textDocument.signatureHelp.contextSupport === true`
+	//
+	// @since 3.15.0
+	Context *SignatureHelpContext `json:"context,omitempty"`
+}
+
+// Additional information about the context in which a signature help request
+// was triggered.
+//
+// @since 3.15
+type SignatureHelpContext struct {
+	// Action that caused signature help to be triggered.
+	TriggerKind SignatureHelpTriggerKind `json:"triggerKind"`
+
+	// Character that caused signature help to be triggered.
+	//
+	// This is undefined when `triggerKind !==
+	// SignatureHelpTriggerKind.TriggerCharacter`
+	TriggerCharacter *string `json:"triggerCharacter,omitempty"`
+
+	// `true` if signature help was already showing when it was triggered.
+	//
+	// Retriggers occur when the signature help is already active and can be
+	// caused by actions such as typing a trigger character, a cursor move, or
+	// document content changes.
+	IsRetrigger bool `json:"isRetrigger"`
+
+	// The currently active `SignatureHelp`.
+	//
+	// The `activeSignatureHelp` has its `SignatureHelp.activeSignature` field
+	// updated based on the user navigating through available signatures.
+	ActiveSignatureHelp *SignatureHelp `json:"activeSignatureHelp,omitempty"`
+}
+
+// SignatureHelp represents the signature of something
+// callable. There can be multiple signature but only one
+// active and only one active parameter.
+type SignatureHelp struct {
+	// One or more signatures. If no signatures are available the signature help
+	// request should return `null`.
+	Signatures []*SignatureInformation `json:"signatures"`
+
+	// The active signature. If omitted or the value lies outside the
+	// range of `signatures` the value defaults to zero or is ignore if
+	// the `SignatureHelp` as no signatures.
+	//
+	// Whenever possible implementors should make an active decision about
+	// the active signature and shouldn't rely on a default value.
+	//
+	// In future version of the protocol this property might become
+	// mandatory to better express this.
+	ActiveSignature *UInteger `json:"activeSignature,omitempty"`
+
+	// The active parameter of the active signature. If omitted or the value
+	// lies outside the range of `signatures[activeSignature].parameters`
+	// defaults to 0 if the active signature has parameters. If
+	// the active signature has no parameters it is ignored.
+	// In future version of the protocol this property might become
+	// mandatory to better express the active parameter if the
+	// active signature does have any.
+	ActiveParameter *UInteger `json:"activeParameter,omitempty"`
+}
+
+// SignatureInformation represents the signature of something callable. A signature
+// can have a label, like a function-name, a doc-comment, and
+// a set of parameters.
+type SignatureInformation struct {
+	// The label of this signature. Will be shown in
+	// the UI.
+	Label string `json:"label"`
+
+	// The human-readable doc-comment of this signature. Will be shown
+	// in the UI but can be omitted.
+	//
+	// string | MarkupContent | nil
+	Documentation any `json:"documentation,omitempty"`
+
+	// The parameters of this signature.
+	Parameters []*ParameterInformation `json:"parameters"`
+
+	// The index of the active parameter.
+	//
+	// If provided, this is used in place of `SignatureHelp.activeParameter`.
+	//
+	// @since 3.16.0
+	ActiveParameter *UInteger `json:"activeParameter,omitempty"`
+}
+
+type signatureInformationIntermediary struct {
+	Label           string                  `json:"label"`
+	Documentation   json.RawMessage         `json:"documentation,omitempty"`
+	Parameters      []*ParameterInformation `json:"parameters"`
+	ActiveParameter *UInteger               `json:"activeParameter,omitempty"`
+}
+
+func (si *SignatureInformation) UnmarshalJSON(data []byte) error {
+
+	var value signatureInformationIntermediary
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	si.Label = value.Label
+	si.Parameters = value.Parameters
+	si.ActiveParameter = value.ActiveParameter
+
+	// Documentation is optional so on failure to unmarshal,
+	// nil value will be set.
+	si.unmarshalDocumentation(&value)
+	return nil
+}
+
+func (si *SignatureInformation) unmarshalDocumentation(value *signatureInformationIntermediary) error {
+	var strVal string
+	if err := json.Unmarshal(value.Documentation, &strVal); err == nil {
+		si.Documentation = strVal
+		return nil
+	}
+
+	var markupContent MarkupContent
+	if err := json.Unmarshal(value.Documentation, &markupContent); err == nil && markupContent.Kind != "" {
+		si.Documentation = markupContent
+	} else {
+		return err
+	}
+
+	return nil
+}
+
+// Represents a parameter of a callable-signature. A parameter can
+// have a label and a doc-comment.
+type ParameterInformation struct {
+	// The label of this parameter information.
+	//
+	// Either a string or an inclusive start and exclusive end offsets within
+	// its containing signature label. (see SignatureInformation.label). The
+	// offsets are based on a UTF-16 string representation as `Position` and
+	// `Range` does.
+	//
+	// *Note*: a label of type string should be a substring of its containing
+	// signature label. Its intended use case is to highlight the parameter
+	// label part in the `SignatureInformation.label`.
+	//
+	// string | [2]UInteger
+	Label any `json:"label"`
+
+	// The human-readable doc-comment of this parameter. Will be shown
+	// in the UI but can be omitted.
+	//
+	// string | MarkupContent | nil
+	Documentation any `json:"documentation,omitempty"`
+}
+
+type parameterInformationIntermediary struct {
+	Label         json.RawMessage `json:"label"`
+	Documentation json.RawMessage `json:"documentation,omitempty"`
+}
+
+// Fulfils the json.Unmarshaler interface.
+func (p *ParameterInformation) UnmarshalJSON(data []byte) error {
+	var value parameterInformationIntermediary
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	err := p.unmarshalLabel(value.Label)
+	if err != nil {
+		return err
+	}
+
+	// Documentation is optional so on failure to unmarshal,
+	// nil value will be set.
+	p.unmarshalDocumentation(value.Documentation)
+	return nil
+}
+
+func (p *ParameterInformation) unmarshalLabel(data json.RawMessage) error {
+	var strVal string
+	if err := json.Unmarshal(data, &strVal); err == nil {
+		p.Label = strVal
+		return nil
+	}
+
+	var uintArr [2]UInteger
+	err := json.Unmarshal(data, &uintArr)
+	if err == nil {
+		p.Label = uintArr
+	}
+
+	return err
+}
+
+func (p *ParameterInformation) unmarshalDocumentation(data json.RawMessage) error {
+	var strVal string
+	if err := json.Unmarshal(data, &strVal); err == nil {
+		p.Documentation = strVal
+		return nil
+	}
+
+	var markupContent MarkupContent
+	if err := json.Unmarshal(data, &markupContent); err == nil && markupContent.Kind != "" {
+		p.Documentation = markupContent
+	} else {
+		return err
+	}
+
+	return nil
+}
+
+// How a signature help was triggered.
+//
+// @since 3.15.0
+type SignatureHelpTriggerKind = Integer
+
+const (
+	// SignatureHelpTriggerKindInvoked means signature help was
+	// invoked manually by the user or by a command.
+	SignatureHelpTriggerKindInvoked SignatureHelpTriggerKind = 1
+
+	// SignatureHelpTriggerKindTriggerCharacter means signature help was
+	// triggered by the user typing a trigger character.
+	SignatureHelpTriggerKindTriggerCharacter SignatureHelpTriggerKind = 2
+
+	// SignatureHelpTriggerKindContentChange means signature help was
+	// triggered by the cursor moving or by the document content changing.
+	SignatureHelpTriggerKindContentChange SignatureHelpTriggerKind = 3
+)

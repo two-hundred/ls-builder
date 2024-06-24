@@ -74,6 +74,7 @@ type Handler struct {
 	completionItemResolve      CompletionItemResolveHandlerFunc
 	documentDiagnostics        DocumentDiagnosticHandlerFunc
 	workspaceDiagnostics       WorkspaceDiagnosticHandlerFunc
+	signatureHelp              SignatureHelpHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -430,6 +431,13 @@ func WithDocumentDiagnosticsHandler(handler DocumentDiagnosticHandlerFunc) Handl
 func WithWorkspaceDiagnosticHandler(handler WorkspaceDiagnosticHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetWorkspaceDiagnosticHandler(handler)
+	}
+}
+
+// WithSignatureHelpHandler sets the handler for the `textDocument/signatureHelp` request.
+func WithSignatureHelpHandler(handler SignatureHelpHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetSignatureHelpHandler(handler)
 	}
 }
 
@@ -837,6 +845,14 @@ func (h *Handler) SetWorkspaceDiagnosticHandler(handler WorkspaceDiagnosticHandl
 	defer h.mu.Unlock()
 	h.workspaceDiagnostics = handler
 	h.messageHandlers[MethodWorkspaceDiagnostic] = createWorkspaceDiagnosticHandler(h)
+}
+
+// SetSignatureHelpHandler sets the handler for the `textDocument/signatureHelp` request.
+func (h *Handler) SetSignatureHelpHandler(handler SignatureHelpHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.signatureHelp = handler
+	h.messageHandlers[MethodSignatureHelp] = createSignatureHelpHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1725,6 +1741,24 @@ func createWorkspaceDiagnosticHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.workspaceDiagnostics(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createSignatureHelpHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.signatureHelp != nil {
+				var params SignatureHelpParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.signatureHelp(ctx, &params)
 				}
 			}
 			return

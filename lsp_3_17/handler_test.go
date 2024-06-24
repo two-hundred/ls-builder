@@ -2743,6 +2743,89 @@ func (s *HandlerTestSuite) Test_calls_completion_item_resolve_request_handler() 
 	s.Require().Equal(completionItem, returnedCompletionItem)
 }
 
+func (s *HandlerTestSuite) Test_calls_signature_help_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	activeSignature := UInteger(10)
+	activeParameter := UInteger(2)
+	signatureHelp := &SignatureHelp{
+		Signatures: []*SignatureInformation{
+			{
+				Label:         "SignatureTest1",
+				Documentation: "SignatureTest1 Documentation",
+				Parameters: []*ParameterInformation{
+					{
+						Label:         "param1",
+						Documentation: "param1 Documentation",
+					},
+					{
+						Label: [2]UInteger{56, 893},
+						Documentation: MarkupContent{
+							Kind:  MarkupKindMarkdown,
+							Value: "# param2 Documentation",
+						},
+					},
+				},
+				ActiveParameter: &activeParameter,
+			},
+			{
+				Label: "SignatureTest2",
+				Documentation: MarkupContent{
+					Kind:  MarkupKindMarkdown,
+					Value: "# SignatureTest2 Documentation",
+				},
+				Parameters: []*ParameterInformation{
+					{
+						Label:         "param1",
+						Documentation: "param1 Documentation",
+					},
+				},
+			},
+		},
+		ActiveSignature: &activeSignature,
+		ActiveParameter: &activeParameter,
+	}
+
+	serverHandler := NewHandler(
+		WithSignatureHelpHandler(
+			func(ctx *common.LSPContext, params *SignatureHelpParams) (*SignatureHelp, error) {
+				return signatureHelp, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	triggerChar := "("
+	signatureHelpParams := SignatureHelpParams{
+		Context: &SignatureHelpContext{
+			TriggerKind:      SignatureHelpTriggerKindTriggerCharacter,
+			TriggerCharacter: &triggerChar,
+			IsRetrigger:      false,
+		},
+	}
+
+	returnedSignatureHelp := &SignatureHelp{}
+	err = clientLSPContext.Call(
+		MethodSignatureHelp,
+		signatureHelpParams,
+		returnedSignatureHelp,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(signatureHelp, returnedSignatureHelp)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
