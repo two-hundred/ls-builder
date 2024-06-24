@@ -78,6 +78,7 @@ type Handler struct {
 	codeAction                 CodeActionHandlerFunc
 	codeActionResolve          CodeActionResolveHandlerFunc
 	documentColor              DocumentColorHandlerFunc
+	documentColorPresentation  DocumentColorPresentationHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -462,6 +463,14 @@ func WithCodeActionResolveHandler(handler CodeActionResolveHandlerFunc) HandlerO
 func WithDocumentColorHandler(handler DocumentColorHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetDocumentColorHandler(handler)
+	}
+}
+
+// WithDocumentColorPresentationHandler sets the handler for the
+// `textDocument/colorPresentation` request.
+func WithDocumentColorPresentationHandler(handler DocumentColorPresentationHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentColorPresentationHandler(handler)
 	}
 }
 
@@ -901,6 +910,14 @@ func (h *Handler) SetDocumentColorHandler(handler DocumentColorHandlerFunc) {
 	defer h.mu.Unlock()
 	h.documentColor = handler
 	h.messageHandlers[MethodDocumentColor] = createDocumentColorHandler(h)
+}
+
+// SetDocumentColorPresentationHandler sets the handler for the `textDocument/colorPresentation` request.
+func (h *Handler) SetDocumentColorPresentationHandler(handler DocumentColorPresentationHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentColorPresentation = handler
+	h.messageHandlers[MethodDocumentColorPresentation] = createDocumentColorPresentationHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1861,6 +1878,24 @@ func createDocumentColorHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.documentColor(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentColorPresentationHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.documentColorPresentation != nil {
+				var params ColorPresentationParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentColorPresentation(ctx, &params)
 				}
 			}
 			return
