@@ -299,6 +299,14 @@ func WithDocumentPrepareRenameHandler(handler DocumentPrepareRenameHandlerFunc) 
 	}
 }
 
+// WithDocumentLinkedEditingRangeHandler sets the handler for the
+// `textDocument/linkedEditingRange` request.
+func WithDocumentLinkedEditingRangeHandler(handler DocumentLinkedEditingRangeHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentLinkedEditingRangeHandler(handler)
+	}
+}
+
 // SetGotoDeclarationHandler sets the handler for the `textDocument/declaration` request.
 func (h *Handler) SetGotoDeclarationHandler(handler GotoDeclarationHandlerFunc) {
 	h.mu.Lock()
@@ -625,6 +633,14 @@ func (h *Handler) SetDocumentPrepareRenameHandler(handler DocumentPrepareRenameH
 	defer h.mu.Unlock()
 	h.documentPrepareRename = handler
 	h.messageHandlers[MethodDocumentPrepareRename] = createDocumentPrepareRenameHandler(h)
+}
+
+// SetDocumentLinkedEditingRangeHandler sets the handler for the `textDocument/linkedEditingRange` request.
+func (h *Handler) SetDocumentLinkedEditingRangeHandler(handler DocumentLinkedEditingRangeHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentLinkedEditingRange = handler
+	h.messageHandlers[MethodDocumentLinkedEditingRange] = createDocumentLinkedEditingRangeHandler(h)
 }
 
 func createGotoDeclarationHandler(root *Handler) common.Handler {
@@ -1358,6 +1374,24 @@ func createDocumentPrepareRenameHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.documentPrepareRename(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentLinkedEditingRangeHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.documentLinkedEditingRange != nil {
+				var params LinkedEditingRangeParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentLinkedEditingRange(ctx, &params)
 				}
 			}
 			return

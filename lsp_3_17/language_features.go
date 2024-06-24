@@ -2979,3 +2979,33 @@ type RangeWithPlaceholder struct {
 type PrepareRenameDefaultBehavior struct {
 	DefaultBehavior bool `json:"defaultBehavior"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_linkedEditingRange
+
+const MethodDocumentLinkedEditingRange = Method("textDocument/linkedEditingRange")
+
+// DocumentLinkedEditingRangeHandlerFunc is the function signature for the textDocument/linkedEditingRange
+// request handler that can be registered for a language server.
+type DocumentLinkedEditingRangeHandlerFunc func(
+	ctx *common.LSPContext,
+	params *LinkedEditingRangeParams,
+) (*LinkedEditingRanges, error)
+
+// LinkedEditingRangeParams contains parameters for the textDocument/linkedEditingRange requests.
+type LinkedEditingRangeParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+}
+
+// LinkedEditingRanges contains the response data type for a textDocument/linkedEditingRange request.
+type LinkedEditingRanges struct {
+	// A list of ranges that can be renamed together. The ranges must have
+	// identical length and contain identical text content. The ranges cannot
+	// overlap.
+	Ranges []Range `json:"ranges"`
+
+	// An optional word pattern (regular expression) that describes valid
+	// contents for the given ranges. If no pattern is provided, the client
+	// configuration's word pattern will be used.
+	WordPattern *string `json:"wordPattern,omitempty"`
+}

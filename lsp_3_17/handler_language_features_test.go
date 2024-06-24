@@ -2606,3 +2606,65 @@ func (s *HandlerTestSuite) Test_calls_document_prepare_rename_request_handler() 
 	s.Require().NoError(err)
 	s.Require().Equal(rangeWithPlaceholder, returnedRangeWithPlaceholder)
 }
+
+func (s *HandlerTestSuite) Test_calls_document_linked_editing_range_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	wordPattern := "\\d+"
+	linkedEditingRanges := LinkedEditingRanges{
+		Ranges: []Range{
+			{
+				Start: Position{
+					Line:      300,
+					Character: 24,
+				},
+				End: Position{
+					Line:      300,
+					Character: 115,
+				},
+			},
+		},
+		WordPattern: &wordPattern,
+	}
+	serverHandler := NewHandler(
+		WithDocumentLinkedEditingRangeHandler(
+			func(ctx *common.LSPContext, params *LinkedEditingRangeParams) (*LinkedEditingRanges, error) {
+				return &linkedEditingRanges, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	linkedEditingRangeParams := &LinkedEditingRangeParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_doc_linked_editing_range.go",
+			},
+			Position: Position{
+				Line:      311,
+				Character: 24,
+			},
+		},
+	}
+
+	returnedLinkedEditingRanges := LinkedEditingRanges{}
+	err = clientLSPContext.Call(
+		MethodDocumentLinkedEditingRange,
+		linkedEditingRangeParams,
+		&returnedLinkedEditingRanges,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(linkedEditingRanges, returnedLinkedEditingRanges)
+}
