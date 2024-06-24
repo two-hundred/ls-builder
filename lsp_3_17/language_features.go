@@ -2868,3 +2868,28 @@ const (
 	// @since 3.15.0
 	FormattingOptionTrimFinalNewlines = "trimFinalNewlines"
 )
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_rangeFormatting
+
+const MethodDocumentRangeFormatting = Method("textDocument/rangeFormatting")
+
+// DocumentRangeFormattingHandlerFunc is the function signature for the textDocument/rangeFormatting
+// request handler that can be registered for a language server.
+type DocumentRangeFormattingHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DocumentRangeFormattingParams,
+) ([]TextEdit, error)
+
+// DocumentRangeFormattingParams contains parameters for the textDocument/rangeFormatting requests.
+type DocumentRangeFormattingParams struct {
+	WorkDoneProgressParams
+
+	// The document to format.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The range to format.
+	Range Range `json:"Range"`
+
+	// The format options.
+	Options FormattingOptions `json:"options"`
+}
