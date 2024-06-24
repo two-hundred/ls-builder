@@ -83,6 +83,7 @@ type Handler struct {
 	documentRangeFormatting    DocumentRangeFormattingHandlerFunc
 	documentOnTypeFormatting   DocumentOnTypeFormattingHandlerFunc
 	documentRename             DocumentRenameHandlerFunc
+	documentPrepareRename      DocumentPrepareRenameHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers

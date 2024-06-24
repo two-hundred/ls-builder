@@ -2547,3 +2547,62 @@ func (s *HandlerTestSuite) Test_calls_document_rename_request_handler() {
 	s.Require().NoError(err)
 	s.Require().Equal(workspaceEdit, returnedWorkspaceEdit)
 }
+
+func (s *HandlerTestSuite) Test_calls_document_prepare_rename_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	rangeWithPlaceholder := RangeWithPlaceholder{
+		Range: Range{
+			Start: Position{
+				Line:      300,
+				Character: 24,
+			},
+			End: Position{
+				Line:      300,
+				Character: 115,
+			},
+		},
+		Placeholder: "user.go",
+	}
+	serverHandler := NewHandler(
+		WithDocumentPrepareRenameHandler(
+			func(ctx *common.LSPContext, params *PrepareRenameParams) (any, error) {
+				return rangeWithPlaceholder, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	prepareRenameParams := &PrepareRenameParams{
+		TextDocumentPositionParams: TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{
+				URI: "file:///test_doc_prepare_rename.go",
+			},
+			Position: Position{
+				Line:      320,
+				Character: 24,
+			},
+		},
+	}
+
+	returnedRangeWithPlaceholder := RangeWithPlaceholder{}
+	err = clientLSPContext.Call(
+		MethodDocumentPrepareRename,
+		prepareRenameParams,
+		&returnedRangeWithPlaceholder,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(rangeWithPlaceholder, returnedRangeWithPlaceholder)
+}

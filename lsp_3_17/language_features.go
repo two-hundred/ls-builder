@@ -2946,3 +2946,36 @@ type RenameParams struct {
 	// appropriate message set.
 	NewName string `json:"newName"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_prepareRename
+
+const MethodDocumentPrepareRename = Method("textDocument/prepareRename")
+
+// DocumentPrepareRenameHandlerFunc is the function signature for the textDocument/prepareRename
+// request handler that can be registered for a language server.
+//
+// Returns: Range | RangeWithPlaceholder | PrepareRenameDefaultBehavior | nil
+type DocumentPrepareRenameHandlerFunc func(
+	ctx *common.LSPContext,
+	params *PrepareRenameParams,
+) (any, error)
+
+// PrepareRenameParams contains parameters for the textDocument/prepareRename requests.
+type PrepareRenameParams struct {
+	TextDocumentPositionParams
+	WorkDoneProgressParams
+}
+
+// RangeWithPlaceholder is a range with a placeholder
+// which can be returned in the response for a textDocument/prepareRename
+// request.
+type RangeWithPlaceholder struct {
+	Range       Range  `json:"range"`
+	Placeholder string `json:"placeholder"`
+}
+
+// PrepareRenameDefaultBehavior is a default behavior which can be returned in the response
+// for a textDocument/prepareRename request.
+type PrepareRenameDefaultBehavior struct {
+	DefaultBehavior bool `json:"defaultBehavior"`
+}

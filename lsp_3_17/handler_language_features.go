@@ -291,6 +291,14 @@ func WithDocumentRenameHandler(handler DocumentRenameHandlerFunc) HandlerOption 
 	}
 }
 
+// WithDocumentPrepareRenameHandler sets the handler for the
+// `textDocument/prepareRename` request.
+func WithDocumentPrepareRenameHandler(handler DocumentPrepareRenameHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentPrepareRenameHandler(handler)
+	}
+}
+
 // SetGotoDeclarationHandler sets the handler for the `textDocument/declaration` request.
 func (h *Handler) SetGotoDeclarationHandler(handler GotoDeclarationHandlerFunc) {
 	h.mu.Lock()
@@ -609,6 +617,14 @@ func (h *Handler) SetDocumentRenameHandler(handler DocumentRenameHandlerFunc) {
 	defer h.mu.Unlock()
 	h.documentRename = handler
 	h.messageHandlers[MethodDocumentRename] = createDocumentRenameHandler(h)
+}
+
+// SetDocumentPrepareRenameHandler sets the handler for the `textDocument/prepareRename` request.
+func (h *Handler) SetDocumentPrepareRenameHandler(handler DocumentPrepareRenameHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentPrepareRename = handler
+	h.messageHandlers[MethodDocumentPrepareRename] = createDocumentPrepareRenameHandler(h)
 }
 
 func createGotoDeclarationHandler(root *Handler) common.Handler {
@@ -1324,6 +1340,24 @@ func createDocumentRenameHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.documentRename(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentPrepareRenameHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.documentPrepareRename != nil {
+				var params PrepareRenameParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentPrepareRename(ctx, &params)
 				}
 			}
 			return
