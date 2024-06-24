@@ -77,6 +77,7 @@ type Handler struct {
 	signatureHelp              SignatureHelpHandlerFunc
 	codeAction                 CodeActionHandlerFunc
 	codeActionResolve          CodeActionResolveHandlerFunc
+	documentColor              DocumentColorHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -454,6 +455,13 @@ func WithCodeActionHandler(handler CodeActionHandlerFunc) HandlerOption {
 func WithCodeActionResolveHandler(handler CodeActionResolveHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetCodeActionResolveHandler(handler)
+	}
+}
+
+// WithDocumentColorHandler sets the handler for the `textDocument/documentColor` request.
+func WithDocumentColorHandler(handler DocumentColorHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentColorHandler(handler)
 	}
 }
 
@@ -885,6 +893,14 @@ func (h *Handler) SetCodeActionResolveHandler(handler CodeActionResolveHandlerFu
 	defer h.mu.Unlock()
 	h.codeActionResolve = handler
 	h.messageHandlers[MethodCodeActionResolve] = createCodeActionResolveHandler(h)
+}
+
+// SetDocumentColorHandler sets the handler for the `textDocument/documentColor` request.
+func (h *Handler) SetDocumentColorHandler(handler DocumentColorHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentColor = handler
+	h.messageHandlers[MethodDocumentColor] = createDocumentColorHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1827,6 +1843,24 @@ func createCodeActionResolveHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.codeActionResolve(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentColorHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.documentColor != nil {
+				var params DocumentColorParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentColor(ctx, &params)
 				}
 			}
 			return

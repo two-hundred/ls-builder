@@ -2726,3 +2726,48 @@ type CodeActionResolveHandlerFunc func(
 	ctx *common.LSPContext,
 	params *CodeAction,
 ) (*CodeAction, error)
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentColor
+
+const MethodDocumentColor = Method("textDocument/documentColor")
+
+// DocumentColorHandlerFunc is the function signature for the textDocument/documentColor
+// request handler that can registered for a language server.
+type DocumentColorHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DocumentColorParams,
+) ([]ColorInformation, error)
+
+// DocumentColorParams contains parameters for the textDocument/documentColor request.
+type DocumentColorParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// ColorInformation contains the response data type of each item in
+// the array for a textDocument/documentColor request.
+type ColorInformation struct {
+	// The range in the document where this color appears.
+	Range Range `json:"range"`
+
+	// The actual color value for this color range.
+	Color Color `json:"color"`
+}
+
+// Color represents a color in RGBA space.
+type Color struct {
+	// The red component of this color in the range [0-1]
+	Red Decimal `json:"red"`
+
+	// The green component of this color in the range [0-1].
+	Green Decimal `json:"green"`
+
+	// The blue component of this color in the range [0-1].
+	Blue Decimal `json:"blue"`
+
+	// The alpha component of this color in the range [0-1].
+	Alpha Decimal `json:"alpha"`
+}

@@ -3031,6 +3031,66 @@ func (s *HandlerTestSuite) Test_calls_code_action_resolve_request_handler() {
 	s.Require().Equal(codeAction, returnedCodeAction)
 }
 
+func (s *HandlerTestSuite) Test_calls_document_color_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	colorInfo := []ColorInformation{
+		{
+			Range: Range{
+				Start: Position{
+					Line:      300,
+					Character: 10,
+				},
+				End: Position{
+					Line:      300,
+					Character: 55,
+				},
+			},
+			Color: Color{
+				Red:   1.0,
+				Green: 0.5,
+				Blue:  0.56,
+				Alpha: 1.0,
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithDocumentColorHandler(
+			func(ctx *common.LSPContext, params *DocumentColorParams) ([]ColorInformation, error) {
+				return colorInfo, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	documentColorParams := &DocumentColorParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_doc_color.go",
+		},
+	}
+
+	returnedColorInfo := []ColorInformation{}
+	err = clientLSPContext.Call(
+		MethodDocumentColor,
+		documentColorParams,
+		&returnedColorInfo,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(colorInfo, returnedColorInfo)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
