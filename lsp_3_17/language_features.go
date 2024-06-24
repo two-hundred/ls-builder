@@ -2893,3 +2893,34 @@ type DocumentRangeFormattingParams struct {
 	// The format options.
 	Options FormattingOptions `json:"options"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_onTypeFormatting
+
+const MethodDocumentOnTypeFormatting = Method("textDocument/onTypeFormatting")
+
+// DocumentOnTypeFormattingHandlerFunc is the function signature for the textDocument/onTypeFormatting
+// request handler that can be registered for a language server.
+type DocumentOnTypeFormattingHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DocumentOnTypeFormattingParams,
+) ([]TextEdit, error)
+
+// DocumentOnTypeFormattingParams contains parameters for the textDocument/onTypeFormatting requests.
+type DocumentOnTypeFormattingParams struct {
+	// The document to format.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The position around which the on type formatting should happen.
+	// This is not necessarily the exact position where the character denoted
+	// by the property `ch` got typed.
+	Position Position `json:"position"`
+
+	// The character that has been typed that triggered the formatting
+	// on type request. That is not necessarily the last character that
+	// got inserted into the document since the client could auto insert
+	// characters as well (e.g. like automatic brace completion).
+	Ch string `json:"ch"`
+
+	// The formatting options.
+	Options FormattingOptions `json:"options"`
+}

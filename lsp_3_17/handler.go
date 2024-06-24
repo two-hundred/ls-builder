@@ -81,6 +81,7 @@ type Handler struct {
 	documentColorPresentation  DocumentColorPresentationHandlerFunc
 	documentFormatting         DocumentFormattingHandlerFunc
 	documentRangeFormatting    DocumentRangeFormattingHandlerFunc
+	documentOnTypeFormatting   DocumentOnTypeFormattingHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -489,6 +490,14 @@ func WithDocumentFormattingHandler(handler DocumentFormattingHandlerFunc) Handle
 func WithDocumentRangeFormattingHandler(handler DocumentRangeFormattingHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetDocumentRangeFormattingHandler(handler)
+	}
+}
+
+// WithDocumentOnTypeFormattingHandler sets the handler for the
+// `textDocument/onTypeFormatting` request.
+func WithDocumentOnTypeFormattingHandler(handler DocumentOnTypeFormattingHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetDocumentOnTypeFormattingHandler(handler)
 	}
 }
 
@@ -946,12 +955,20 @@ func (h *Handler) SetDocumentFormattingHandler(handler DocumentFormattingHandler
 	h.messageHandlers[MethodDocumentFormatting] = createDocumentFormattingHandler(h)
 }
 
-// SetDocumentRangeFormattingHandler sets teh handler for the `textDocument/rangeformatting` request.
+// SetDocumentRangeFormattingHandler sets the handler for the `textDocument/rangeFormatting` request.
 func (h *Handler) SetDocumentRangeFormattingHandler(handler DocumentRangeFormattingHandlerFunc) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.documentRangeFormatting = handler
 	h.messageHandlers[MethodDocumentRangeFormatting] = createDocumentRangeFormattingHandler(h)
+}
+
+// SetDocumentOnTypeFormattingHandler sets the handler for the `textDocument/onTypeFormatting` request.
+func (h *Handler) SetDocumentOnTypeFormattingHandler(handler DocumentOnTypeFormattingHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.documentOnTypeFormatting = handler
+	h.messageHandlers[MethodDocumentOnTypeFormatting] = createDocumentOnTypeFormattingHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1966,6 +1983,24 @@ func createDocumentRangeFormattingHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.documentRangeFormatting(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createDocumentOnTypeFormattingHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.documentOnTypeFormatting != nil {
+				var params DocumentOnTypeFormattingParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.documentOnTypeFormatting(ctx, &params)
 				}
 			}
 			return

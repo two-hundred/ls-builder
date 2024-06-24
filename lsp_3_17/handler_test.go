@@ -3265,6 +3265,64 @@ func (s *HandlerTestSuite) Test_calls_document_range_formatting_request_handler(
 	s.Require().Equal(textEdits, returnedTextEdits)
 }
 
+func (s *HandlerTestSuite) Test_calls_document_on_type_formatting_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	textEdits := []TextEdit{
+		{
+			Range: &Range{
+				Start: Position{
+					Line:      439,
+					Character: 15,
+				},
+				End: Position{
+					Line:      439,
+					Character: 24,
+				},
+			},
+			NewText: "type User struct{\n	ID string `json:\"id\"`\n}",
+		},
+	}
+	serverHandler := NewHandler(
+		WithDocumentOnTypeFormattingHandler(
+			func(ctx *common.LSPContext, params *DocumentOnTypeFormattingParams) ([]TextEdit, error) {
+				return textEdits, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	docOnTypeFormattingParams := &DocumentOnTypeFormattingParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_doc_on_type_formatting.go",
+		},
+		Options: map[string]any{
+			FormattingOptionTabSize: Integer(8),
+		},
+	}
+
+	returnedTextEdits := []TextEdit{}
+	err = clientLSPContext.Call(
+		MethodDocumentOnTypeFormatting,
+		docOnTypeFormattingParams,
+		&returnedTextEdits,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(textEdits, returnedTextEdits)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
