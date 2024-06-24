@@ -2943,6 +2943,94 @@ func (s *HandlerTestSuite) Test_calls_code_action_request_handler() {
 	s.Require().Equal(codeActions, returnedCodeActions)
 }
 
+func (s *HandlerTestSuite) Test_calls_code_action_resolve_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	codeAction1 := CodeActionKindQuickFix
+	severity1 := DiagnosticSeverityError
+	is1Preferred := true
+	diagnosticCode := "ErrorCode"
+	codeAction := CodeAction{
+		Title: "TestCodeAction",
+		Kind:  &codeAction1,
+		Diagnostics: []Diagnostic{
+			{
+				Range: Range{
+					Start: Position{
+						Line:      305,
+						Character: 5,
+					},
+					End: Position{
+						Line:      305,
+						Character: 115,
+					},
+				},
+				Severity: &severity1,
+				Code: &IntOrString{
+					StrVal: &diagnosticCode,
+				},
+				Message: "Test Diagnostic Message Resolve",
+			},
+		},
+		IsPreferred: &is1Preferred,
+	}
+	serverHandler := NewHandler(
+		WithCodeActionResolveHandler(
+			func(ctx *common.LSPContext, params *CodeAction) (*CodeAction, error) {
+				return &codeAction, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	codeAction2 := CodeActionKindRefactor
+	codeActionParams := &CodeAction{
+		Title: "TestCodeActionTrigger",
+		Kind:  &codeAction2,
+		Diagnostics: []Diagnostic{
+			{
+				Range: Range{
+					Start: Position{
+						Line:      202,
+						Character: 5,
+					},
+					End: Position{
+						Line:      202,
+						Character: 115,
+					},
+				},
+				Severity: &severity1,
+				Code: &IntOrString{
+					StrVal: &diagnosticCode,
+				},
+				Message: "Test Diagnostic Message Resolve Trigger",
+			},
+		},
+		IsPreferred: &is1Preferred,
+	}
+
+	returnedCodeAction := CodeAction{}
+	err = clientLSPContext.Call(
+		MethodCodeActionResolve,
+		codeActionParams,
+		&returnedCodeAction,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(codeAction, returnedCodeAction)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

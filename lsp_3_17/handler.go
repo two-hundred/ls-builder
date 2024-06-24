@@ -76,6 +76,7 @@ type Handler struct {
 	workspaceDiagnostics       WorkspaceDiagnosticHandlerFunc
 	signatureHelp              SignatureHelpHandlerFunc
 	codeAction                 CodeActionHandlerFunc
+	codeActionResolve          CodeActionResolveHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
@@ -446,6 +447,13 @@ func WithSignatureHelpHandler(handler SignatureHelpHandlerFunc) HandlerOption {
 func WithCodeActionHandler(handler CodeActionHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetCodeActionHandler(handler)
+	}
+}
+
+// WithCodeActionResolveHandler sets the handler for the `codeAction/resolve` request.
+func WithCodeActionResolveHandler(handler CodeActionResolveHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetCodeActionResolveHandler(handler)
 	}
 }
 
@@ -869,6 +877,14 @@ func (h *Handler) SetCodeActionHandler(handler CodeActionHandlerFunc) {
 	defer h.mu.Unlock()
 	h.codeAction = handler
 	h.messageHandlers[MethodCodeAction] = createCodeActionHandler(h)
+}
+
+// SetCodeActionResolveHandler sets the handler for the `codeAction/resolve` request.
+func (h *Handler) SetCodeActionResolveHandler(handler CodeActionResolveHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.codeActionResolve = handler
+	h.messageHandlers[MethodCodeActionResolve] = createCodeActionResolveHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -1793,6 +1809,24 @@ func createCodeActionHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.codeAction(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createCodeActionResolveHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.codeActionResolve != nil {
+				var params CodeAction
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.codeActionResolve(ctx, &params)
 				}
 			}
 			return

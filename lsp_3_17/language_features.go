@@ -2715,3 +2715,14 @@ type CodeActionDisabledReason struct {
 	// This is displayed in the code actions user interface.
 	Reason string `json:"reason"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#codeAction_resolve
+
+const MethodCodeActionResolve = Method("codeAction/resolve")
+
+// CodeActionResolveHandlerFunc is the function signature for the codeAction/resolve
+// request handler that can be registered for a language server.
+type CodeActionResolveHandlerFunc func(
+	ctx *common.LSPContext,
+	params *CodeAction,
+) (*CodeAction, error)
