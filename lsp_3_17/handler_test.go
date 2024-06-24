@@ -3149,6 +3149,64 @@ func (s *HandlerTestSuite) Test_calls_document_color_presentation_request_handle
 	s.Require().Equal(colorPresentation, returnedColorPresentation)
 }
 
+func (s *HandlerTestSuite) Test_calls_document_formatting_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	textEdits := []TextEdit{
+		{
+			Range: &Range{
+				Start: Position{
+					Line:      239,
+					Character: 45,
+				},
+				End: Position{
+					Line:      239,
+					Character: 62,
+				},
+			},
+			NewText: "	label, err := container.GetLabel(ctx, id)",
+		},
+	}
+	serverHandler := NewHandler(
+		WithDocumentFormattingHandler(
+			func(ctx *common.LSPContext, params *DocumentFormattingParams) ([]TextEdit, error) {
+				return textEdits, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	docFormattingParams := &DocumentFormattingParams{
+		TextDocument: TextDocumentIdentifier{
+			URI: "file:///test_doc_formatting.go",
+		},
+		Options: map[string]any{
+			FormattingOptionTabSize: Integer(4),
+		},
+	}
+
+	returnedTextEdits := []TextEdit{}
+	err = clientLSPContext.Call(
+		MethodDocumentFormatting,
+		docFormattingParams,
+		&returnedTextEdits,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(textEdits, returnedTextEdits)
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

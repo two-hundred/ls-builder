@@ -2816,3 +2816,55 @@ type ColorPresentation struct {
 	// main [edit](#ColorPresentation.textEdit) nor with themselves.
 	AdditionalTextEdits []TextEdit `json:"additionalTextEdits,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_formatting
+
+const MethodDocumentFormatting = Method("textDocument/formatting")
+
+// DocumentFormattingHandlerFunc is the function signature for the textDocument/formatting
+// request handler that can be registered for a language server.
+type DocumentFormattingHandlerFunc func(
+	ctx *common.LSPContext,
+	params *DocumentFormattingParams,
+) ([]TextEdit, error)
+
+// DocumentFormattingParams contains parameters for the textDocument/formatting requests.
+type DocumentFormattingParams struct {
+	WorkDoneProgressParams
+
+	// The document to format.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+
+	// The format options.
+	Options FormattingOptions `json:"options"`
+}
+
+// FormattingOptions is a value-object describing
+// what options formatting should use.
+//
+// map[string](bool | Integer | string)
+type FormattingOptions map[string]any
+
+// Value-object describing what options formatting should use.
+const (
+	// Size of a tab in spaces.
+	FormattingOptionTabSize = "tabSize"
+
+	// Prefer spaces over tabs.
+	FormattingOptionInsertSpaces = "insertSpaces"
+
+	// Trim trailing whitespace on a line.
+	//
+	// @since 3.15.0
+	FormattingOptionTrimTrailingWhitespace = "trimTrailingWhitespace"
+
+	// Insert a newline character at the end of the file if one does not exist.
+	//
+	// @since 3.15.0
+	FormattingOptionInsertFinalNewline = "insertFinalNewline"
+
+	// Trim all newlines after the final newline at the end of the file.
+	//
+	// @since 3.15.0
+	FormattingOptionTrimFinalNewlines = "trimFinalNewlines"
+)
