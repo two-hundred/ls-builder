@@ -98,3 +98,11 @@ func (d *Dispatcher) WorkspaceConfiguration(params ConfigurationParams) ([]LSPAn
 	err := d.ctx.Call(MethodWorkspaceConfiguration, params, &result)
 	return result, err
 }
+
+// WorkspaceFolders requests that the client fetches the workspace folders
+// that are currently open.
+func (d *Dispatcher) WorkspaceFolders() ([]WorkspaceFolder, error) {
+	var result []WorkspaceFolder
+	err := d.ctx.Call(MethodWorkspaceFolders, nil, &result)
+	return result, err
+}

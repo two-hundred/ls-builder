@@ -403,6 +403,31 @@ func (s *DispatchTestSuite) Test_server_sends_workspace_configuration_request() 
 	s.Require().Equal(MethodWorkspaceConfiguration, container.clientReceivedMethods[0])
 }
 
+func (s *DispatchTestSuite) Test_server_sends_workspace_folders_request() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	_, err := dispatcher.WorkspaceFolders()
+	s.Require().NoError(err)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+
+	// Verify that the client received the configuration message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+
+	// Verify the method name.
+	s.Require().Len(container.clientReceivedMethods, 1)
+	s.Require().Equal(MethodWorkspaceFolders, container.clientReceivedMethods[0])
+}
+
 func TestDispatchTestSuite(t *testing.T) {
 	suite.Run(t, new(DispatchTestSuite))
 }

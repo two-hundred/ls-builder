@@ -511,3 +511,7 @@ type DidChangeConfigurationParams struct {
 	// The actual changed settings.
 	Settings LSPAny `json:"settings"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_workspaceFolders
+
+const MethodWorkspaceFolders = Method("workspace/workspaceFolders")
