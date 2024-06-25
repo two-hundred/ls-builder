@@ -113,3 +113,17 @@ func (d *Dispatcher) ApplyWorkspaceEdit(params ApplyWorkspaceEditParams) (*Apply
 	err := d.ctx.Call(MethodWorkspaceApplyEdit, params, &result)
 	return &result, err
 }
+
+// ShowMessageNotification sends a notification to the client to show a message
+// without waiting for a response.
+func (d *Dispatcher) ShowMessageNotification(params ShowMessageParams) error {
+	return d.ctx.Notify(MethodShowMessageNotification, params)
+}
+
+// ShowMessageRequest sends a request to the client to show a message where the request
+// can pass actions and wait for an answer from the client.
+func (d *Dispatcher) ShowMessageRequest(params ShowMessageRequestParams) (*MessageActionItem, error) {
+	var result MessageActionItem
+	err := d.ctx.Call(MethodShowMessageRequest, params, &result)
+	return &result, err
+}
