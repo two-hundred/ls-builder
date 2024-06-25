@@ -493,3 +493,21 @@ type ConfigurationItem struct {
 	// The configuration section asked for.
 	Section *string `json:"section,omitempty"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didChangeConfiguration
+
+const MethodWorkspaceDidChangeConfiguration = Method("workspace/didChangeConfiguration")
+
+// WorkspaceDidChangeConfigurationHandlerFunc is the function signature for the
+// `workspace/didChangeConfiguration` method.
+type WorkspaceDidChangeConfigurationHandlerFunc func(
+	context *common.LSPContext,
+	params *DidChangeConfigurationParams,
+) error
+
+// DidChangeConfigurationParams contains the parameters for the `workspace/didChangeConfiguration`
+// notification.
+type DidChangeConfigurationParams struct {
+	// The actual changed settings.
+	Settings LSPAny `json:"settings"`
+}

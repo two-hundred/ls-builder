@@ -136,3 +136,44 @@ func (s *HandlerTestSuite) Test_calls_workspace_symbol_resolve_request_handler()
 	s.Require().NoError(err)
 	s.Require().Equal(symbol, returnedSymbol)
 }
+
+func (s *HandlerTestSuite) Test_calls_workspace_did_change_configuration_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DidChangeConfigurationParams, 1)
+	serverHandler := NewHandler(
+		WithWorkspaceDidChangeConfigurationHandler(
+			func(ctx *common.LSPContext, params *DidChangeConfigurationParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+	didChangeConfigurationParams := DidChangeConfigurationParams{
+		Settings: map[string]interface{}{
+			"test": "test",
+		},
+	}
+	err = clientLSPContext.Notify(MethodWorkspaceDidChangeConfiguration, didChangeConfigurationParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(didChangeConfigurationParams, *receivedParams)
+	}
+}

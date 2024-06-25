@@ -20,6 +20,13 @@ func WithWorkspaceSymbolResolveHandler(handler WorkspaceSymbolResolveHandlerFunc
 	}
 }
 
+// WithWorkspaceDidChangeConfigurationHandler sets the handler for the `workspace/didChangeConfiguration` notification.
+func WithWorkspaceDidChangeConfigurationHandler(handler WorkspaceDidChangeConfigurationHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetWorkspaceDidChangeConfigurationHandler(handler)
+	}
+}
+
 // SetWorkspaceSymbolHandler sets the handler for the `workspace/symbol` request.
 func (h *Handler) SetWorkspaceSymbolHandler(handler WorkspaceSymbolHandlerFunc) {
 	h.mu.Lock()
@@ -34,6 +41,14 @@ func (h *Handler) SetWorkspaceSymbolResolveHandler(handler WorkspaceSymbolResolv
 	defer h.mu.Unlock()
 	h.workspaceSymbolResolve = handler
 	h.messageHandlers[MethodWorkspaceSymbolResolve] = createWorkspaceSymbolResolveHandler(h)
+}
+
+// SetWorkspaceDidChangeConfigurationHandler sets the handler for the `workspace/didChangeConfiguration` notification.
+func (h *Handler) SetWorkspaceDidChangeConfigurationHandler(handler WorkspaceDidChangeConfigurationHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.workspaceDidChangeConfiguration = handler
+	h.messageHandlers[MethodWorkspaceDidChangeConfiguration] = createWorkspaceDidChangeConfigurationHandler(h)
 }
 
 func createWorkspaceSymbolHandler(root *Handler) common.Handler {
@@ -65,6 +80,24 @@ func createWorkspaceSymbolResolveHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.workspaceSymbolResolve(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createWorkspaceDidChangeConfigurationHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.workspaceDidChangeConfiguration != nil {
+				var params DidChangeConfigurationParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.workspaceDidChangeConfiguration(ctx, &params)
 				}
 			}
 			return

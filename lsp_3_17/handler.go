@@ -87,8 +87,9 @@ type Handler struct {
 	documentLinkedEditingRange DocumentLinkedEditingRangeHandlerFunc
 
 	// Workspace Features
-	workspaceSymbol        WorkspaceSymbolHandlerFunc
-	workspaceSymbolResolve WorkspaceSymbolResolveHandlerFunc
+	workspaceSymbol                 WorkspaceSymbolHandlerFunc
+	workspaceSymbolResolve          WorkspaceSymbolResolveHandlerFunc
+	workspaceDidChangeConfiguration WorkspaceDidChangeConfigurationHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
