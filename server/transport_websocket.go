@@ -10,17 +10,20 @@ import (
 	"go.uber.org/zap"
 )
 
-func RunWebSocketServer(address string, server *Server, logger *zap.Logger) error {
+func RunWebSocketServer(address string, server *Server, logger *zap.Logger, httpServer *http.Server) error {
 	mux := http.NewServeMux()
-	upgrader := websocket.Upgrader{CheckOrigin: func(request *http.Request) bool { return true }}
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 
 	var connectionCount uint64
 
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		conn, err := upgrader.Upgrade(writer, request, nil)
 		if err != nil {
-			logger.Warn(fmt.Sprintf("error upgrading HTTP to web socket: %s", err.Error()))
-			http.Error(writer, errors.Wrap(err, "could not upgrade to web socket").Error(), http.StatusBadRequest)
+			logger.Error(fmt.Sprintf("error upgrading HTTP to web socket: %s", err.Error()))
 			return
 		}
 
@@ -34,10 +37,17 @@ func RunWebSocketServer(address string, server *Server, logger *zap.Logger) erro
 		return err
 	}
 
-	httpServer := http.Server{
-		Handler:      http.TimeoutHandler(mux, server.GetTimeout(), ""),
-		ReadTimeout:  server.GetReadTimeout(),
-		WriteTimeout: server.GetWriteTimeout(),
+	if httpServer == nil {
+		httpServer = &http.Server{}
+	}
+	httpServer.Handler = mux
+
+	if httpServer.ReadTimeout == 0 {
+		httpServer.ReadTimeout = server.GetReadTimeout()
+	}
+
+	if httpServer.WriteTimeout == 0 {
+		httpServer.WriteTimeout = server.GetWriteTimeout()
 	}
 
 	err = httpServer.Serve(*listener)
