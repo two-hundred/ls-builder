@@ -49,6 +49,22 @@ type TextDocumentSyncOptions struct {
 	// TextDocumentSyncKind.Incremental. If omitted it defaults to
 	// TextDocumentSyncKind.None.
 	Change *TextDocumentSyncKind `json:"change,omitempty"`
+
+	// If present will save notifications are sent to the server. If omitted
+	// the notification should not be sent.
+	WillSave *bool `json:"willSave,omitempty"`
+
+	/**
+	 * If present will save wait until requests are sent to the server. If
+	 * omitted the request should not be sent.
+	 */
+	WillSaveWaitUntil *bool `json:"willSaveWaitUntil,omitempty"`
+
+	// If present save notifications are sent to the server. If omitted the
+	// notification should not be sent.
+	//
+	// SaveOptions | bool | nil
+	Save any `json:"save,omitempty"`
 }
 
 // TextDocumentSyncKind defines how the host (editor) should sync document changes
