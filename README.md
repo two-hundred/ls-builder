@@ -3,6 +3,7 @@
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=two-hundred_ls-builder&metric=coverage)](https://sonarcloud.io/summary/new_code?id=two-hundred_ls-builder)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=two-hundred_ls-builder&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=two-hundred_ls-builder)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=two-hundred_ls-builder&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=two-hundred_ls-builder)
+[![Go Reference](https://pkg.go.dev/badge/github.com/two-hundred/ls-builder.svg)](https://pkg.go.dev/github.com/two-hundred/ls-builder)
 
 
 Language Server Builder (SDK) for Go. This is a Go implementation of the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/)'s server component.
