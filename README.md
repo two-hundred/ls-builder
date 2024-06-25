@@ -5,7 +5,7 @@
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=two-hundred_ls-builder&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=two-hundred_ls-builder)
 
 
-Language Server Builder (SDK) for Go. This is a Go implementation of the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/).
+Language Server Builder (SDK) for Go. This is a Go implementation of the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/)'s server component.
 
 The supported LSP implementations are:
 
