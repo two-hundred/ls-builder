@@ -583,3 +583,47 @@ func (s *HandlerTestSuite) Test_calls_workspace_did_change_watched_files_notific
 		s.Require().Equal(didChangeWatchedFilesParams, *receivedParams)
 	}
 }
+
+func (s *HandlerTestSuite) Test_calls_workspace_execute_command_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	commandExpectedResponse := map[string]interface{}{
+		"TestResponseID": "TestResponseValue",
+	}
+	serverHandler := NewHandler(
+		WithWorkspaceExecuteCommandHandler(
+			func(ctx *common.LSPContext, params *ExecuteCommandParams) (LSPAny, error) {
+				return &commandExpectedResponse, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	commandParams := &ExecuteCommandParams{
+		Command: "testCommand",
+		Arguments: []interface{}{
+			"arg1",
+		},
+	}
+
+	returnedResponse := map[string]interface{}{}
+	err = clientLSPContext.Call(
+		MethodWorkspaceExecuteCommand,
+		commandParams,
+		&returnedResponse,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(commandExpectedResponse, returnedResponse)
+}

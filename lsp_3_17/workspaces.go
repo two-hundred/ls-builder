@@ -703,3 +703,26 @@ const (
 	// FileChangeDeleted is the event type for a file deletion.
 	FileChangeDeleted FileChangeType = 3
 )
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_executeCommand
+
+const MethodWorkspaceExecuteCommand = Method("workspace/executeCommand")
+
+// WorkspaceExecuteCommandHandlerFunc is the function signature for the
+// `workspace/executeCommand` method.
+type WorkspaceExecuteCommandHandlerFunc func(
+	context *common.LSPContext,
+	params *ExecuteCommandParams,
+) (LSPAny, error)
+
+// ExecuteCommandParams contains the parameters for the `workspace/executeCommand`
+// request.
+type ExecuteCommandParams struct {
+	WorkDoneProgressParams
+
+	// The identifier of the actual command handler.
+	Command string `json:"command"`
+
+	// Arguments that the command should be invoked with.
+	Arguments []LSPAny `json:"arguments,omitempty"`
+}

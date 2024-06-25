@@ -98,6 +98,7 @@ type Handler struct {
 	workspaceWillDeleteFiles        WorkspaceWillDeleteFilesHandlerFunc
 	workspaceDidDeleteFiles         WorkspaceDidDeleteFilesHandlerFunc
 	workspaceDidChangeWatchedFiles  WorkspaceDidChangeWatchedFilesHandlerFunc
+	workspaceExecuteCommand         WorkspaceExecuteCommandHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers

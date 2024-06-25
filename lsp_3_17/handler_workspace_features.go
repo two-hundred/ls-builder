@@ -83,6 +83,13 @@ func WithWorkspaceDidChangeWatchedFilesHandler(handler WorkspaceDidChangeWatched
 	}
 }
 
+// WithWorkspaceExecuteCommandHandler sets the handler for the `workspace/executeCommand` request.
+func WithWorkspaceExecuteCommandHandler(handler WorkspaceExecuteCommandHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetWorkspaceExecuteCommandHandler(handler)
+	}
+}
+
 // SetWorkspaceSymbolHandler sets the handler for the `workspace/symbol` request.
 func (h *Handler) SetWorkspaceSymbolHandler(handler WorkspaceSymbolHandlerFunc) {
 	h.mu.Lock()
@@ -169,6 +176,14 @@ func (h *Handler) SetWorkspaceDidChangeWatchedFilesHandler(handler WorkspaceDidC
 	defer h.mu.Unlock()
 	h.workspaceDidChangeWatchedFiles = handler
 	h.messageHandlers[MethodWorkspaceDidChangeWatchedFiles] = createWorkspaceDidChangeWatchedFilesHandler(h)
+}
+
+// SetWorkspaceExecuteCommandHandler sets the handler for the `workspace/executeCommand` request.
+func (h *Handler) SetWorkspaceExecuteCommandHandler(handler WorkspaceExecuteCommandHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.workspaceExecuteCommand = handler
+	h.messageHandlers[MethodWorkspaceExecuteCommand] = createWorkspaceExecuteCommandHandler(h)
 }
 
 func createWorkspaceSymbolHandler(root *Handler) common.Handler {
@@ -362,6 +377,24 @@ func createWorkspaceDidChangeWatchedFilesHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.workspaceDidChangeWatchedFiles(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createWorkspaceExecuteCommandHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.workspaceExecuteCommand != nil {
+				var params ExecuteCommandParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.workspaceExecuteCommand(ctx, &params)
 				}
 			}
 			return
