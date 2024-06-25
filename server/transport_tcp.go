@@ -1,10 +1,12 @@
 package server
 
 import (
+	"context"
+
 	"go.uber.org/zap"
 )
 
-func RunTCP(address string, server *Server, logger *zap.Logger) error {
+func RunTCP(ctx context.Context, address string, server *Server, logger *zap.Logger) error {
 	listener, err := newNetworkListener("tcp", address, logger)
 	if err != nil {
 		return err
@@ -17,14 +19,19 @@ func RunTCP(address string, server *Server, logger *zap.Logger) error {
 	var connectionCount uint64
 
 	for {
-		connection, err := (*listener).Accept()
-		if err != nil {
-			return err
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			connection, err := (*listener).Accept()
+			if err != nil {
+				return err
+			}
+
+			connectionCount += 1
+			connectionLogger := logger.With(zap.Uint64("id", connectionCount))
+
+			go server.Serve(NewStreamConnection(server.NewHandler(), connection), connectionLogger)
 		}
-
-		connectionCount += 1
-		connectionLogger := logger.With(zap.Uint64("id", connectionCount))
-
-		go server.Serve(NewStreamConnection(server.NewHandler(), connection), connectionLogger)
 	}
 }

@@ -46,6 +46,6 @@ func (s *WebSocketTransportTestSuite) Test_websocket_transport() {
 	s.Require().Equal(2, testCountRes.Count)
 }
 
-func TestHandlerTestSuite(t *testing.T) {
+func TestWebSucketTransportTestSuite(t *testing.T) {
 	suite.Run(t, new(WebSocketTransportTestSuite))
 }
