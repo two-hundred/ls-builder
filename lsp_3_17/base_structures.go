@@ -389,7 +389,7 @@ type Location struct {
 	URI DocumentURI `json:"uri"`
 
 	// The range in the document.
-	Range Range `json:"range"`
+	Range *Range `json:"range"`
 }
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#locationLink

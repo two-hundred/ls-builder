@@ -310,7 +310,7 @@ func (s *HandlerTestSuite) Test_calls_find_references_request_handler() {
 	locations := []Location{
 		{
 			URI: "file:///test_references.go",
-			Range: Range{
+			Range: &Range{
 				Start: Position{
 					Line:      310,
 					Character: 315,

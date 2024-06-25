@@ -1,5 +1,11 @@
 package lsp
 
+import (
+	"encoding/json"
+
+	"github.com/two-hundred/ls-builder/common"
+)
+
 // DidChangeConfigurationClientCapabilities describes the capabilities
 // of a client for the `workspace/didChangeConfiguration` request.
 type DidChangeConfigurationClientCapabilities struct {
@@ -349,4 +355,111 @@ const (
 type FileOperationPatternOptions struct {
 	// The pattern should be matched ignoring casing.
 	IgnoreCase *bool `json:"ignoreCase,omitempty"`
+}
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbol
+
+const MethodWorkspaceSymbol = Method("workspace/symbol")
+
+// WorkspaceSymbolHandlerFunc is the function signature for the `workspace/symbol`
+// method.
+//
+// Returns: []SymbolInformation | []WorkspaceSymbol | nil
+type WorkspaceSymbolHandlerFunc func(
+	context *common.LSPContext,
+	params *WorkspaceSymbolParams,
+) (any, error)
+
+// WorkspaceSymbolParams contains the parameters for the `workspace/symbol` request.
+type WorkspaceSymbolParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	// A query string to filter symbols by. Clients may send an empty
+	// string here to request all symbols.
+	Query string `json:"query"`
+}
+
+// WorkspaceSymbol represents a special workspace symbol
+// that supports locations without a range.
+//
+// @since 3.17.0
+type WorkspaceSymbol struct {
+	// The name of this symbol.
+	Name string `json:"name"`
+
+	// The kind of this symbol.
+	Kind SymbolKind `json:"kind"`
+
+	// Tags for this symbol.
+	Tags []SymbolTag `json:"tags,omitempty"`
+
+	// The name of the symbol containing this symbol. This information is for
+	// user interface purposes (e.g. to render a qualifier in the user interface
+	// if necessary). It can't be used to re-infer a hierarchy for the document
+	// symbols.
+	ContainerName *string `json:"containerName,omitempty"`
+
+	// The location of this symbol. Whether a server is allowed to
+	// return a location without a range depends on the client
+	// capability `workspace.symbol.resolveSupport`.
+	//
+	// See also `SymbolInformation.location`.
+	//
+	// Location | DocumentURIObject
+	Location any `json:"location"`
+
+	// A data entry field that is preserved on a workspace symbol between a
+	// workspace symbol request and a workspace symbol resolve request.
+	Data LSPAny `json:"data,omitempty"`
+}
+
+type workspaceSymbolIntermediary struct {
+	Name          string      `json:"name"`
+	Kind          SymbolKind  `json:"kind"`
+	Tags          []SymbolTag `json:"tags,omitempty"`
+	ContainerName *string     `json:"containerName,omitempty"`
+	// Location | DocumentURIObject
+	Location json.RawMessage `json:"location"`
+	Data     LSPAny          `json:"data,omitempty"`
+}
+
+// Fulfils the `json.Unmarshaler` interface.
+func (w *WorkspaceSymbol) UnmarshalJSON(data []byte) error {
+	var intermediary workspaceSymbolIntermediary
+	if err := json.Unmarshal(data, &intermediary); err != nil {
+		return err
+	}
+
+	w.Name = intermediary.Name
+	w.Kind = intermediary.Kind
+	w.Tags = intermediary.Tags
+	w.ContainerName = intermediary.ContainerName
+	w.Data = intermediary.Data
+
+	err := w.unmarshalLocation(intermediary.Location)
+	return err
+}
+
+func (w *WorkspaceSymbol) unmarshalLocation(data json.RawMessage) error {
+	var location Location
+	if err := json.Unmarshal(data, &location); err == nil && location.Range != nil {
+		w.Location = location
+		return nil
+	}
+
+	var uriObject DocumentURIObject
+	err := json.Unmarshal(data, &uriObject)
+	if err == nil {
+		w.Location = uriObject
+		return nil
+	}
+
+	return err
+}
+
+// DocumentURIObject represents a document URI object
+// used in the `WorkspaceSymbol` struct.
+type DocumentURIObject struct {
+	URI DocumentURI `json:"uri"`
 }

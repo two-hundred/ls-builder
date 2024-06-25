@@ -86,6 +86,9 @@ type Handler struct {
 	documentPrepareRename      DocumentPrepareRenameHandlerFunc
 	documentLinkedEditingRange DocumentLinkedEditingRangeHandlerFunc
 
+	// Workspace Features
+	workspaceSymbol WorkspaceSymbolHandlerFunc
+
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
 	// that are wrappers around the user-provided handler functions that will unmarshal params
