@@ -239,7 +239,7 @@ func (s *HandlerTestSuite) Test_calls_workspace_will_create_files_request_handle
 
 	workspaceEdit := WorkspaceEdit{
 		Changes: map[string][]TextEdit{
-			"edit1": []TextEdit{
+			"edit1": {
 				{
 					Range: &Range{
 						Start: Position{
@@ -289,4 +289,47 @@ func (s *HandlerTestSuite) Test_calls_workspace_will_create_files_request_handle
 	)
 	s.Require().NoError(err)
 	s.Require().Equal(workspaceEdit, returnedEdit)
+}
+
+func (s *HandlerTestSuite) Test_calls_workspace_did_create_files_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *CreateFilesParams, 1)
+	serverHandler := NewHandler(
+		WithWorkspaceDidCreateFilesHandler(
+			func(ctx *common.LSPContext, params *CreateFilesParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+	createFileParams := CreateFilesParams{
+		Files: []FileCreate{
+			{
+				URI: "file:///test_doc.go",
+			},
+		},
+	}
+	err = clientLSPContext.Notify(MethodWorkspaceDidCreateFiles, createFileParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(createFileParams, *receivedParams)
+	}
 }

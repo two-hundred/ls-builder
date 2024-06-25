@@ -570,3 +570,14 @@ type FileCreate struct {
 	// A file:// URI for the location of the file/folder being created.
 	URI string `json:"uri"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didCreateFiles
+
+const MethodWorkspaceDidCreateFiles = Method("workspace/didCreateFiles")
+
+// WorkspaceDidCreateFilesHandlerFunc is the function signature for the
+// `workspace/didCreateFiles` method.
+type WorkspaceDidCreateFilesHandlerFunc func(
+	context *common.LSPContext,
+	params *CreateFilesParams,
+) error
