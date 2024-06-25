@@ -439,3 +439,56 @@ func (s *HandlerTestSuite) Test_calls_workspace_did_rename_files_notification_ha
 		s.Require().Equal(renameFilesParams, *receivedParams)
 	}
 }
+
+func (s *HandlerTestSuite) Test_calls_workspace_will_delete_files_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	needsConfirmation := true
+	ChangeAnnotationDescription := "Change Annotation Description"
+	workspaceEdit := WorkspaceEdit{
+		ChangeAnnotations: map[string]ChangeAnnotation{
+			"changeAnnotation1": {
+				Label:             "Change Annotation 1",
+				NeedsConfirmation: &needsConfirmation,
+				Description:       &ChangeAnnotationDescription,
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithWorkspaceWillDeleteFilesHandler(
+			func(ctx *common.LSPContext, params *DeleteFilesParams) (*WorkspaceEdit, error) {
+				return &workspaceEdit, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	deleteFilesParams := &DeleteFilesParams{
+		Files: []FileDelete{
+			{
+				URI: "file:///test_doc_to_delete.go",
+			},
+		},
+	}
+
+	returnedEdit := WorkspaceEdit{}
+	err = clientLSPContext.Call(
+		MethodWorkspaceWillDeleteFiles,
+		deleteFilesParams,
+		&returnedEdit,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(workspaceEdit, returnedEdit)
+}

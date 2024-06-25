@@ -623,3 +623,31 @@ type WorkspaceDidRenameFilesHandlerFunc func(
 	context *common.LSPContext,
 	params *RenameFilesParams,
 ) error
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_willDeleteFiles
+
+const MethodWorkspaceWillDeleteFiles = Method("workspace/willDeleteFiles")
+
+// WorkspaceWillDeleteFilesHandlerFunc is the function signature for the
+// `workspace/willDeleteFiles` method.
+type WorkspaceWillDeleteFilesHandlerFunc func(
+	context *common.LSPContext,
+	params *DeleteFilesParams,
+) (*WorkspaceEdit, error)
+
+// DeleteFilesParams contains the parameters sent in notifications/requests
+// for user-initiated deletion of files.
+//
+// @since 3.16.0
+type DeleteFilesParams struct {
+	// An array of all files/folders deleted in this operation.
+	Files []FileDelete `json:"files"`
+}
+
+// FileDelete represents information on a file/folder deletion.
+//
+// @since 3.16.0
+type FileDelete struct {
+	// A file:// URI for the location of the file/folder being deleted.
+	URI string `json:"uri"`
+}
