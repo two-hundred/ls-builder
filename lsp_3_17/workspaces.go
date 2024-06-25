@@ -463,3 +463,14 @@ func (w *WorkspaceSymbol) unmarshalLocation(data json.RawMessage) error {
 type DocumentURIObject struct {
 	URI DocumentURI `json:"uri"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbolResolve
+
+const MethodWorkspaceSymbolResolve = Method("workspaceSymbol/resolve")
+
+// WorkspaceSymbolResolveHandlerFunc is the function signature for the
+// `workspaceSymbol/resolve` method.
+type WorkspaceSymbolResolveHandlerFunc func(
+	context *common.LSPContext,
+	params *WorkspaceSymbol,
+) (*WorkspaceSymbol, error)
