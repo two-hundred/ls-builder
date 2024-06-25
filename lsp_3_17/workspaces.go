@@ -612,3 +612,14 @@ type FileRename struct {
 	// A file:// URI for the new location of the file/folder being renamed.
 	NewURI string `json:"newUri"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didRenameFiles
+
+const MethodWorkspaceDidRenameFiles = Method("workspace/didRenameFiles")
+
+// WorkspaceDidRenameFilesHandlerFunc is the function signature for the
+// `workspace/didRenameFiles` method.
+type WorkspaceDidRenameFilesHandlerFunc func(
+	context *common.LSPContext,
+	params *RenameFilesParams,
+) error

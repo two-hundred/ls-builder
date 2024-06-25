@@ -395,3 +395,47 @@ func (s *HandlerTestSuite) Test_calls_workspace_will_rename_files_request_handle
 	s.Require().NoError(err)
 	s.Require().Equal(workspaceEdit, returnedEdit)
 }
+
+func (s *HandlerTestSuite) Test_calls_workspace_did_rename_files_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *RenameFilesParams, 1)
+	serverHandler := NewHandler(
+		WithWorkspaceDidRenameFilesHandler(
+			func(ctx *common.LSPContext, params *RenameFilesParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+	renameFilesParams := RenameFilesParams{
+		Files: []FileRename{
+			{
+				OldURI: "file:///test_doc_1.go",
+				NewURI: "file:///test_doc_renamed_1.go",
+			},
+		},
+	}
+	err = clientLSPContext.Notify(MethodWorkspaceDidRenameFiles, renameFilesParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(renameFilesParams, *receivedParams)
+	}
+}
