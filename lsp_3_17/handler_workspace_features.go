@@ -76,6 +76,13 @@ func WithWorkspaceDidDeleteFilesHandler(handler WorkspaceDidDeleteFilesHandlerFu
 	}
 }
 
+// WithWorkspaceDidChangeWatchedFilesHandler sets the handler for the `workspace/didChangeWatchedFiles` notification.
+func WithWorkspaceDidChangeWatchedFilesHandler(handler WorkspaceDidChangeWatchedFilesHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetWorkspaceDidChangeWatchedFilesHandler(handler)
+	}
+}
+
 // SetWorkspaceSymbolHandler sets the handler for the `workspace/symbol` request.
 func (h *Handler) SetWorkspaceSymbolHandler(handler WorkspaceSymbolHandlerFunc) {
 	h.mu.Lock()
@@ -154,6 +161,14 @@ func (h *Handler) SetWorkspaceDidDeleteFilesHandler(handler WorkspaceDidDeleteFi
 	defer h.mu.Unlock()
 	h.workspaceDidDeleteFiles = handler
 	h.messageHandlers[MethodWorkspaceDidDeleteFiles] = createWorkspaceDidDeleteFilesHandler(h)
+}
+
+// SetWorkspaceDidChangeWatchedFilesHandler sets the handler for the `workspace/didChangeWatchedFiles` notification.
+func (h *Handler) SetWorkspaceDidChangeWatchedFilesHandler(handler WorkspaceDidChangeWatchedFilesHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.workspaceDidChangeWatchedFiles = handler
+	h.messageHandlers[MethodWorkspaceDidChangeWatchedFiles] = createWorkspaceDidChangeWatchedFilesHandler(h)
 }
 
 func createWorkspaceSymbolHandler(root *Handler) common.Handler {
@@ -329,6 +344,24 @@ func createWorkspaceDidDeleteFilesHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.workspaceDidDeleteFiles(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createWorkspaceDidChangeWatchedFilesHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.workspaceDidChangeWatchedFiles != nil {
+				var params DidChangeWatchedFilesParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.workspaceDidChangeWatchedFiles(ctx, &params)
 				}
 			}
 			return

@@ -535,3 +535,51 @@ func (s *HandlerTestSuite) Test_calls_workspace_did_delete_files_notification_ha
 		s.Require().Equal(deleteFilesParams, *receivedParams)
 	}
 }
+
+func (s *HandlerTestSuite) Test_calls_workspace_did_change_watched_files_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DidChangeWatchedFilesParams, 1)
+	serverHandler := NewHandler(
+		WithWorkspaceDidChangeWatchedFilesHandler(
+			func(ctx *common.LSPContext, params *DidChangeWatchedFilesParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+	didChangeWatchedFilesParams := DidChangeWatchedFilesParams{
+		Changes: []FileEvent{
+			{
+				URI:  "file:///test_doc_deleted.go",
+				Type: FileChangeDeleted,
+			},
+			{
+				URI:  "file:///test_doc_created.go",
+				Type: FileChangeCreated,
+			},
+		},
+	}
+	err = clientLSPContext.Notify(MethodWorkspaceDidChangeWatchedFiles, didChangeWatchedFilesParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(didChangeWatchedFilesParams, *receivedParams)
+	}
+}

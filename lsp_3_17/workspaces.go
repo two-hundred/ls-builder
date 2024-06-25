@@ -662,3 +662,44 @@ type WorkspaceDidDeleteFilesHandlerFunc func(
 	context *common.LSPContext,
 	params *DeleteFilesParams,
 ) error
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didChangeWatchedFiles
+
+const MethodWorkspaceDidChangeWatchedFiles = Method("workspace/didChangeWatchedFiles")
+
+// WorkspaceDidChangeWatchedFilesHandlerFunc is the function signature for the
+// `workspace/didChangeWatchedFiles` method.
+type WorkspaceDidChangeWatchedFilesHandlerFunc func(
+	context *common.LSPContext,
+	params *DidChangeWatchedFilesParams,
+) error
+
+// DidChangeWatchedFilesParams contains the parameters for the `workspace/didChangeWatchedFiles`
+// notification.
+type DidChangeWatchedFilesParams struct {
+	// The actual file events.
+	Changes []FileEvent `json:"changes"`
+}
+
+// FileEvent is an event describing a file change.
+type FileEvent struct {
+	// The file's URI.
+	URI DocumentURI `json:"uri"`
+
+	// The change type.
+	Type FileChangeType `json:"type"`
+}
+
+// FileChangeType represents a file event type.
+type FileChangeType = Integer
+
+const (
+	// FileChangeCreated is the event type for a file creation.
+	FileChangeCreated FileChangeType = 1
+
+	// FileChangeChanged is the event type for a file change.
+	FileChangeChanged FileChangeType = 2
+
+	// FileChangeDeleted is the event type for a file deletion.
+	FileChangeDeleted FileChangeType = 3
+)
