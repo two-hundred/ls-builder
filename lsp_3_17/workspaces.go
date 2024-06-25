@@ -474,3 +474,22 @@ type WorkspaceSymbolResolveHandlerFunc func(
 	context *common.LSPContext,
 	params *WorkspaceSymbol,
 ) (*WorkspaceSymbol, error)
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_configuration
+
+const MethodWorkspaceConfiguration = Method("workspace/configuration")
+
+// ConfigurationParams contains the parameters for the `workspace/configuration` request
+// made from the server to the client.
+type ConfigurationParams struct {
+	Items []ConfigurationItem `json:"items"`
+}
+
+// ConfigurationItem is a workspace configuration item to be fetched.
+type ConfigurationItem struct {
+	// The scope to get the configuration section for.
+	ScopeURI *URI `json:"scopeUri,omitempty"`
+
+	// The configuration section asked for.
+	Section *string `json:"section,omitempty"`
+}

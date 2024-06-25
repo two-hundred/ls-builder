@@ -90,3 +90,11 @@ func (d *Dispatcher) PublishDiagnostics(params PublishDiagnosticsParams) error {
 func (d *Dispatcher) DiagnosticsRefresh() error {
 	return d.ctx.Call(MethodDiagnosticsRefresh, nil, nil)
 }
+
+// WorkspaceConfiguration requests the client to fetch the configuration settings
+// for the given scopes and configuration sections within a workspace.
+func (d *Dispatcher) WorkspaceConfiguration(params ConfigurationParams) ([]LSPAny, error) {
+	var result []LSPAny
+	err := d.ctx.Call(MethodWorkspaceConfiguration, params, &result)
+	return result, err
+}
