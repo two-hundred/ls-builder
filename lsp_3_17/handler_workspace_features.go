@@ -69,6 +69,13 @@ func WithWorkspaceWillDeleteFilesHandler(handler WorkspaceWillDeleteFilesHandler
 	}
 }
 
+// WithWorkspaceDidDeleteFilesHandler sets the handler for the `workspace/didDeleteFiles` notification.
+func WithWorkspaceDidDeleteFilesHandler(handler WorkspaceDidDeleteFilesHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetWorkspaceDidDeleteFilesHandler(handler)
+	}
+}
+
 // SetWorkspaceSymbolHandler sets the handler for the `workspace/symbol` request.
 func (h *Handler) SetWorkspaceSymbolHandler(handler WorkspaceSymbolHandlerFunc) {
 	h.mu.Lock()
@@ -139,6 +146,14 @@ func (h *Handler) SetWorkspaceWillDeleteFilesHandler(handler WorkspaceWillDelete
 	defer h.mu.Unlock()
 	h.workspaceWillDeleteFiles = handler
 	h.messageHandlers[MethodWorkspaceWillDeleteFiles] = createWorkspaceWillDeleteFilesHandler(h)
+}
+
+// SetWorkspaceDidDeleteFilesHandler sets the handler for the `workspace/didDeleteFiles` notification.
+func (h *Handler) SetWorkspaceDidDeleteFilesHandler(handler WorkspaceDidDeleteFilesHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.workspaceDidDeleteFiles = handler
+	h.messageHandlers[MethodWorkspaceDidDeleteFiles] = createWorkspaceDidDeleteFilesHandler(h)
 }
 
 func createWorkspaceSymbolHandler(root *Handler) common.Handler {
@@ -296,6 +311,24 @@ func createWorkspaceWillDeleteFilesHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					r, err = root.workspaceWillDeleteFiles(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createWorkspaceDidDeleteFilesHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.workspaceDidDeleteFiles != nil {
+				var params DeleteFilesParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.workspaceDidDeleteFiles(ctx, &params)
 				}
 			}
 			return

@@ -492,3 +492,46 @@ func (s *HandlerTestSuite) Test_calls_workspace_will_delete_files_request_handle
 	s.Require().NoError(err)
 	s.Require().Equal(workspaceEdit, returnedEdit)
 }
+
+func (s *HandlerTestSuite) Test_calls_workspace_did_delete_files_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DeleteFilesParams, 1)
+	serverHandler := NewHandler(
+		WithWorkspaceDidDeleteFilesHandler(
+			func(ctx *common.LSPContext, params *DeleteFilesParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+	deleteFilesParams := DeleteFilesParams{
+		Files: []FileDelete{
+			{
+				URI: "file:///test_doc_deleted.go",
+			},
+		},
+	}
+	err = clientLSPContext.Notify(MethodWorkspaceDidDeleteFiles, deleteFilesParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(deleteFilesParams, *receivedParams)
+	}
+}

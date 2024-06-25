@@ -651,3 +651,14 @@ type FileDelete struct {
 	// A file:// URI for the location of the file/folder being deleted.
 	URI string `json:"uri"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didDeleteFiles
+
+const MethodWorkspaceDidDeleteFiles = Method("workspace/didDeleteFiles")
+
+// WorkspaceDidDeleteFilesHandlerFunc is the function signature for the
+// `workspace/didDeleteFiles` method.
+type WorkspaceDidDeleteFilesHandlerFunc func(
+	context *common.LSPContext,
+	params *DeleteFilesParams,
+) error
