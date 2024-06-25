@@ -428,6 +428,58 @@ func (s *DispatchTestSuite) Test_server_sends_workspace_folders_request() {
 	s.Require().Equal(MethodWorkspaceFolders, container.clientReceivedMethods[0])
 }
 
+func (s *DispatchTestSuite) Test_server_sends_apply_workspace_edit_request() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	editLabel := "Apply workspace edit"
+	params := ApplyWorkspaceEditParams{
+		Label: &editLabel,
+		Edit: WorkspaceEdit{
+			Changes: map[DocumentURI][]TextEdit{
+				"file:///path/to/file.go": {
+					{
+						Range: &Range{
+							Start: Position{
+								Line:      10,
+								Character: 5,
+							},
+							End: Position{
+								Line:      50,
+								Character: 20,
+							},
+						},
+						NewText: "new text",
+					},
+				},
+			},
+		},
+	}
+	_, err := dispatcher.ApplyWorkspaceEdit(params)
+	s.Require().NoError(err)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+
+	// Verify that the client received the apply workspace edit message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+	var message ApplyWorkspaceEditParams
+	err = json.Unmarshal(*container.clientReceivedMessages[0], &message)
+	s.Require().NoError(err)
+	s.Require().Equal(params, message)
+
+	// Verify the method name.
+	s.Require().Len(container.clientReceivedMethods, 1)
+	s.Require().Equal(MethodWorkspaceApplyEdit, container.clientReceivedMethods[0])
+}
+
 func TestDispatchTestSuite(t *testing.T) {
 	suite.Run(t, new(DispatchTestSuite))
 }

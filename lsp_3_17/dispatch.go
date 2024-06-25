@@ -106,3 +106,10 @@ func (d *Dispatcher) WorkspaceFolders() ([]WorkspaceFolder, error) {
 	err := d.ctx.Call(MethodWorkspaceFolders, nil, &result)
 	return result, err
 }
+
+// ApplyWorkspaceEdit requests that the client applies a workspace edit.
+func (d *Dispatcher) ApplyWorkspaceEdit(params ApplyWorkspaceEditParams) (*ApplyWorkspaceEditResult, error) {
+	var result ApplyWorkspaceEditResult
+	err := d.ctx.Call(MethodWorkspaceApplyEdit, params, &result)
+	return &result, err
+}
