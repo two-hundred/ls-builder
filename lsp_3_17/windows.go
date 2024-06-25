@@ -1,5 +1,7 @@
 package lsp
 
+import "github.com/two-hundred/ls-builder/common"
+
 // ShowMessageRequestClientCapabilities represents the client capabilities
 // specific to the show message request.
 type ShowMessageRequestClientCapabilities struct {
@@ -95,4 +97,31 @@ type LogMessageParams struct {
 
 	// The actual message.
 	Message string `json:"message"`
+}
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#window_workDoneProgress_create
+
+const MethodWorkDoneProgressCreate = Method("window/workDoneProgress/create")
+
+// WorkDoneProgressCreateParams represents the parameters of a `window/workDoneProgress/create` notification.
+type WorkDoneProgressCreateParams struct {
+	// The token to be used to report progress.
+	Token *ProgressToken `json:"token"`
+}
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#window_workDoneProgress_cancel
+
+const MethodWorkDoneProgressCancel = Method("window/workDoneProgress/cancel")
+
+// WindowWorkDoneProgressCancelHandler is the function signature for the
+// `window/workDoneProgress/cancel` notification.
+type WindowWorkDoneProgressCancelHandler func(
+	context *common.LSPContext,
+	params *WorkDoneProgressCancelParams,
+) error
+
+// WorkDoneProgressCancelParams represents the parameters of a `window/workDoneProgress/cancel` notification.
+type WorkDoneProgressCancelParams struct {
+	// The token to be used to report progress.
+	Token *ProgressToken `json:"token"`
 }

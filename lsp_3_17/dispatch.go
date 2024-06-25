@@ -132,3 +132,8 @@ func (d *Dispatcher) ShowMessageRequest(params ShowMessageRequestParams) (*Messa
 func (d *Dispatcher) LogMessage(params LogMessageParams) error {
 	return d.ctx.Notify(MethodLogMessage, params)
 }
+
+// CreateWorkDoneProgress sends a request to the client to create a new work done progress.
+func (d *Dispatcher) CreateWorkDoneProgress(params WorkDoneProgressCreateParams) error {
+	return d.ctx.Call(MethodWorkDoneProgressCreate, params, nil)
+}

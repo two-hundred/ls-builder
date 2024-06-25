@@ -594,6 +594,41 @@ func (s *DispatchTestSuite) Test_server_sends_window_log_message_notification() 
 	s.Require().Equal(MethodLogMessage, container.clientReceivedMethods[0])
 }
 
+func (s *DispatchTestSuite) Test_server_sends_create_work_done_progress_request() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	token := "progress-test-token"
+	params := WorkDoneProgressCreateParams{
+		Token: &ProgressToken{
+			StrVal: &token,
+		},
+	}
+	err := dispatcher.CreateWorkDoneProgress(params)
+	s.Require().NoError(err)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+
+	// Verify that the client received the apply workspace edit message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+	var message WorkDoneProgressCreateParams
+	err = json.Unmarshal(*container.clientReceivedMessages[0], &message)
+	s.Require().NoError(err)
+	s.Require().Equal(params, message)
+
+	// Verify the method name.
+	s.Require().Len(container.clientReceivedMethods, 1)
+	s.Require().Equal(MethodWorkDoneProgressCreate, container.clientReceivedMethods[0])
+}
+
 func TestDispatchTestSuite(t *testing.T) {
 	suite.Run(t, new(DispatchTestSuite))
 }

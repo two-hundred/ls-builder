@@ -822,6 +822,47 @@ func (s *HandlerTestSuite) Test_calls_notebook_document_did_close_notification_h
 	}
 }
 
+func (s *HandlerTestSuite) Test_calls_window_work_done_progress_cancel_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *WorkDoneProgressCancelParams, 1)
+	serverHandler := NewHandler(
+		WithWindowWorkDoneProgressCancelHandler(
+			func(ctx *common.LSPContext, params *WorkDoneProgressCancelParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	progressToken := "test-progress-token-cancel"
+	workDoneProgressCancelParams := WorkDoneProgressCancelParams{
+		Token: &ProgressToken{StrVal: &progressToken},
+	}
+	err = clientLSPContext.Notify(MethodWorkDoneProgressCancel, workDoneProgressCancelParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(workDoneProgressCancelParams, *receivedParams)
+	}
+}
+
 func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

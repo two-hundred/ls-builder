@@ -100,6 +100,9 @@ type Handler struct {
 	workspaceDidChangeWatchedFiles  WorkspaceDidChangeWatchedFilesHandlerFunc
 	workspaceExecuteCommand         WorkspaceExecuteCommandHandlerFunc
 
+	// Window Features
+	windowWorkDoneProgressCancel WindowWorkDoneProgressCancelHandler
+
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers
 	// that are wrappers around the user-provided handler functions that will unmarshal params
@@ -238,6 +241,14 @@ func WithNotebookDocumentDidSaveHandler(handler NotebookDocumentDidSaveHandlerFu
 func WithNotebookDocumentDidCloseHandler(handler NotebookDocumentDidCloseHandlerFunc) HandlerOption {
 	return func(root *Handler) {
 		root.SetNotebookDocumentDidCloseHandler(handler)
+	}
+}
+
+// WithWindowWorkDoneProgressCancelHandler sets the handler for the
+// `window/workDoneProgress/cancel` notification.
+func WithWindowWorkDoneProgressCancelHandler(handler WindowWorkDoneProgressCancelHandler) HandlerOption {
+	return func(root *Handler) {
+		root.SetWindowWorkDoneProgressCancelHandler(handler)
 	}
 }
 
@@ -397,6 +408,15 @@ func (h *Handler) SetNotebookDocumentDidCloseHandler(handler NotebookDocumentDid
 	defer h.mu.Unlock()
 	h.notebookDocumentDidClose = handler
 	h.messageHandlers[MethodNotebookDocumentDidClose] = createNotebookDocumentDidCloseHandler(h)
+}
+
+// SetWindowWorkDoneProgressCancelHandler sets the handler for the
+// `window/workDoneProgress/cancel` notification.
+func (h *Handler) SetWindowWorkDoneProgressCancelHandler(handler WindowWorkDoneProgressCancelHandler) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.windowWorkDoneProgressCancel = handler
+	h.messageHandlers[MethodWorkDoneProgressCancel] = createWindowWorkDoneProgressCancelHandler(h)
 }
 
 // Fulfils the common.Handler interface.
@@ -727,6 +747,24 @@ func createNotebookDocumentDidCloseHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.notebookDocumentDidClose(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createWindowWorkDoneProgressCancelHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			if root.windowWorkDoneProgressCancel != nil {
+				validMethod = true
+				var params WorkDoneProgressCancelParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.windowWorkDoneProgressCancel(ctx, &params)
 				}
 			}
 			return
