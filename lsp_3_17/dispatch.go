@@ -127,3 +127,8 @@ func (d *Dispatcher) ShowMessageRequest(params ShowMessageRequestParams) (*Messa
 	err := d.ctx.Call(MethodShowMessageRequest, params, &result)
 	return &result, err
 }
+
+// LogMessage sends a notification to the client to log a message.
+func (d *Dispatcher) LogMessage(params LogMessageParams) error {
+	return d.ctx.Notify(MethodLogMessage, params)
+}

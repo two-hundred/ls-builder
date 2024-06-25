@@ -556,6 +556,44 @@ func (s *DispatchTestSuite) Test_server_sends_show_message_request() {
 	s.Require().Equal(MethodShowMessageRequest, container.clientReceivedMethods[0])
 }
 
+func (s *DispatchTestSuite) Test_server_sends_window_log_message_notification() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	logMessageParams := LogMessageParams{
+		Type:    MessageTypeError,
+		Message: "Something bad happened",
+	}
+
+	err := dispatcher.LogMessage(logMessageParams)
+	s.Require().NoError(err)
+
+	// Let some time pass as this is a notification,
+	// which by definition in LSP and JSON-RPC is fire-and-forget
+	// so we can't know at this point if the client has received the message.
+	time.Sleep(10 * time.Millisecond)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+	// Verify that the client received the cancel request message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+	var message LogMessageParams
+	err = json.Unmarshal(*container.clientReceivedMessages[0], &message)
+	s.Require().NoError(err)
+	s.Require().Equal(logMessageParams, message)
+
+	// Verify the method name.
+	s.Require().Len(container.clientReceivedMethods, 1)
+	s.Require().Equal(MethodLogMessage, container.clientReceivedMethods[0])
+}
+
 func TestDispatchTestSuite(t *testing.T) {
 	suite.Run(t, new(DispatchTestSuite))
 }

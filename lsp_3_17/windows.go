@@ -83,3 +83,16 @@ type MessageActionItem struct {
 	// A short title like 'Retry', 'Open Log' etc.
 	Title string `json:"title"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#window_logMessage
+
+const MethodLogMessage = Method("window/logMessage")
+
+// LogMessageParams represents the parameters of a `window/logMessage` notification.
+type LogMessageParams struct {
+	// The message type. See {@link MessageType}.
+	Type MessageType `json:"type"`
+
+	// The actual message.
+	Message string `json:"message"`
+}
