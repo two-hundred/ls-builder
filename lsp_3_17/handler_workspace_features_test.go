@@ -333,3 +333,65 @@ func (s *HandlerTestSuite) Test_calls_workspace_did_create_files_notification_ha
 		s.Require().Equal(createFileParams, *receivedParams)
 	}
 }
+
+func (s *HandlerTestSuite) Test_calls_workspace_will_rename_files_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	workspaceEdit := WorkspaceEdit{
+		Changes: map[string][]TextEdit{
+			"edit2": {
+				{
+					Range: &Range{
+						Start: Position{
+							Line:      1,
+							Character: 1,
+						},
+						End: Position{
+							Line:      1,
+							Character: 7,
+						},
+					},
+					NewText: "helper",
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithWorkspaceWillRenameFilesHandler(
+			func(ctx *common.LSPContext, params *RenameFilesParams) (*WorkspaceEdit, error) {
+				return &workspaceEdit, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	renameFilesParams := &RenameFilesParams{
+		Files: []FileRename{
+			{
+				OldURI: "file:///test_doc.go",
+				NewURI: "file:///test_doc_renamed.go",
+			},
+		},
+	}
+
+	returnedEdit := WorkspaceEdit{}
+	err = clientLSPContext.Call(
+		MethodWorkspaceWillRenameFiles,
+		renameFilesParams,
+		&returnedEdit,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(workspaceEdit, returnedEdit)
+}

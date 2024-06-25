@@ -581,3 +581,34 @@ type WorkspaceDidCreateFilesHandlerFunc func(
 	context *common.LSPContext,
 	params *CreateFilesParams,
 ) error
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_willRenameFiles
+
+const MethodWorkspaceWillRenameFiles = Method("workspace/willRenameFiles")
+
+// WorkspaceWillRenameFilesHandlerFunc is the function signature for the
+// `workspace/willRenameFiles` method.
+type WorkspaceWillRenameFilesHandlerFunc func(
+	context *common.LSPContext,
+	params *RenameFilesParams,
+) (*WorkspaceEdit, error)
+
+// RenameFilesParams contains the parameters sent in notifications/requests
+// for user-initiated renaming of files.
+type RenameFilesParams struct {
+	// An array of all files/folders renamed in this operation.
+	// When a folder is renamed, only the folder will be included,
+	// and not its children.
+	Files []FileRename `json:"files"`
+}
+
+// FileRename represents information on a file/folder rename.
+//
+// @since 3.16.0
+type FileRename struct {
+	// A file:// URI for the location of the file/folder being renamed.
+	OldURI string `json:"oldUri"`
+
+	// A file:// URI for the new location of the file/folder being renamed.
+	NewURI string `json:"newUri"`
+}

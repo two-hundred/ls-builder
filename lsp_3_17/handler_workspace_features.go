@@ -48,6 +48,13 @@ func WithWorkspaceDidCreateFilesHandler(handler WorkspaceDidCreateFilesHandlerFu
 	}
 }
 
+// WithWorkspaceWillRenameFilesHandler sets the handler for the `workspace/willRenameFiles` request.
+func WithWorkspaceWillRenameFilesHandler(handler WorkspaceWillRenameFilesHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetWorkspaceWillRenameFilesHandler(handler)
+	}
+}
+
 // SetWorkspaceSymbolHandler sets the handler for the `workspace/symbol` request.
 func (h *Handler) SetWorkspaceSymbolHandler(handler WorkspaceSymbolHandlerFunc) {
 	h.mu.Lock()
@@ -94,6 +101,14 @@ func (h *Handler) SetWorkspaceDidCreateFilesHandler(handler WorkspaceDidCreateFi
 	defer h.mu.Unlock()
 	h.workspaceDidCreateFiles = handler
 	h.messageHandlers[MethodWorkspaceDidCreateFiles] = createWorkspaceDidCreateFilesHandler(h)
+}
+
+// SetWorkspaceWillRenameFilesHandler sets the handler for the `workspace/willRenameFiles` request.
+func (h *Handler) SetWorkspaceWillRenameFilesHandler(handler WorkspaceWillRenameFilesHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.workspaceWillRenameFiles = handler
+	h.messageHandlers[MethodWorkspaceWillRenameFiles] = createWorkspaceWillRenameFilesHandler(h)
 }
 
 func createWorkspaceSymbolHandler(root *Handler) common.Handler {
@@ -197,6 +212,24 @@ func createWorkspaceDidCreateFilesHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.workspaceDidCreateFiles(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createWorkspaceWillRenameFilesHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.workspaceWillRenameFiles != nil {
+				var params RenameFilesParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.workspaceWillRenameFiles(ctx, &params)
 				}
 			}
 			return
