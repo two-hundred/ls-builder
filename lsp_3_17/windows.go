@@ -125,3 +125,13 @@ type WorkDoneProgressCancelParams struct {
 	// The token to be used to report progress.
 	Token *ProgressToken `json:"token"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#telemetry_event
+
+const MethodTelemetryEvent = Method("telemetry/event")
+
+// TelemetryEventParams represents the parameters of a `telemetry/event` notification.
+// This is expected to be a value serialisable to a JSON object or array.
+// This is presented in the specification as:
+// params: ‘object’ | ‘array’;
+type TelemetryEventParams = interface{}

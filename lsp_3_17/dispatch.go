@@ -137,3 +137,8 @@ func (d *Dispatcher) LogMessage(params LogMessageParams) error {
 func (d *Dispatcher) CreateWorkDoneProgress(params WorkDoneProgressCreateParams) error {
 	return d.ctx.Call(MethodWorkDoneProgressCreate, params, nil)
 }
+
+// Telemetry sends a notification to the client to log a telemetry event.
+func (d *Dispatcher) Telemetry(params TelemetryEventParams) error {
+	return d.ctx.Notify(MethodTelemetryEvent, params)
+}

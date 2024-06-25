@@ -629,6 +629,44 @@ func (s *DispatchTestSuite) Test_server_sends_create_work_done_progress_request(
 	s.Require().Equal(MethodWorkDoneProgressCreate, container.clientReceivedMethods[0])
 }
 
+func (s *DispatchTestSuite) Test_server_sends_window_telemetry_event_notification() {
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	serverHandler := newTestServerHandler()
+	container := createTestConnectionsContainer(serverHandler)
+
+	lspCtx := server.NewLSPContext(ctx, container.serverConn, nil)
+	dispatcher := NewDispatcher(lspCtx)
+
+	telemetryEventParams := map[string]interface{}{
+		"traceId": "test-trace-id",
+		"message": "Something interesting happened",
+	}
+
+	err := dispatcher.Telemetry(telemetryEventParams)
+	s.Require().NoError(err)
+
+	// Let some time pass as this is a notification,
+	// which by definition in LSP and JSON-RPC is fire-and-forget
+	// so we can't know at this point if the client has received the message.
+	time.Sleep(10 * time.Millisecond)
+
+	// Acquire a lock on the received message list shared between goroutines.
+	container.mu.Lock()
+	defer container.mu.Unlock()
+	// Verify that the client received the cancel request message.
+	s.Require().Len(container.clientReceivedMessages, 1)
+	var message map[string]interface{}
+	err = json.Unmarshal(*container.clientReceivedMessages[0], &message)
+	s.Require().NoError(err)
+	s.Require().Equal(telemetryEventParams, message)
+
+	// Verify the method name.
+	s.Require().Len(container.clientReceivedMethods, 1)
+	s.Require().Equal(MethodTelemetryEvent, container.clientReceivedMethods[0])
+}
+
 func TestDispatchTestSuite(t *testing.T) {
 	suite.Run(t, new(DispatchTestSuite))
 }
