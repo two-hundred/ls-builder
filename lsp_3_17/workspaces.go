@@ -542,3 +542,31 @@ type WorkspaceFoldersChangeEvent struct {
 	// The array of removed workspace folders.
 	Removed []WorkspaceFolder `json:"removed"`
 }
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_willCreateFiles
+
+const MethodWorkspaceWillCreateFiles = Method("workspace/willCreateFiles")
+
+// WorkspaceWillCreateFilesHandlerFunc is the function signature for the
+// `workspace/willCreateFiles` method.
+type WorkspaceWillCreateFilesHandlerFunc func(
+	context *common.LSPContext,
+	params *CreateFilesParams,
+) (*WorkspaceEdit, error)
+
+// CreateFilesParams contains the parameters sent in notifications/requests
+// for user-initiated creation of files.
+//
+// @since 3.16.0
+type CreateFilesParams struct {
+	// An array of all files/folders created in this operation.
+	Files []FileCreate `json:"files"`
+}
+
+// FileCreate represents information on a file/folder creation.
+//
+// @since 3.16.0
+type FileCreate struct {
+	// A file:// URI for the location of the file/folder being created.
+	URI string `json:"uri"`
+}

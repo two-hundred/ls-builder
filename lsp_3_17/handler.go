@@ -91,6 +91,7 @@ type Handler struct {
 	workspaceSymbolResolve          WorkspaceSymbolResolveHandlerFunc
 	workspaceDidChangeConfiguration WorkspaceDidChangeConfigurationHandlerFunc
 	workspaceDidChangeFolders       WorkspaceDidChangeFoldersHandlerFunc
+	workspaceWillCreateFiles        WorkspaceWillCreateFilesHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers

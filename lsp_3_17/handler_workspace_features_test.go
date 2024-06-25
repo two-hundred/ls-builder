@@ -229,3 +229,64 @@ func (s *HandlerTestSuite) Test_calls_workspace_did_change_folders_notification_
 		s.Require().Equal(didChangeFoldersParams, *receivedParams)
 	}
 }
+
+func (s *HandlerTestSuite) Test_calls_workspace_will_create_files_request_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	workspaceEdit := WorkspaceEdit{
+		Changes: map[string][]TextEdit{
+			"edit1": []TextEdit{
+				{
+					Range: &Range{
+						Start: Position{
+							Line:      1,
+							Character: 1,
+						},
+						End: Position{
+							Line:      1,
+							Character: 5,
+						},
+					},
+					NewText: "help",
+				},
+			},
+		},
+	}
+	serverHandler := NewHandler(
+		WithWorkspaceWillCreateFilesHandler(
+			func(ctx *common.LSPContext, params *CreateFilesParams) (*WorkspaceEdit, error) {
+				return &workspaceEdit, nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+
+	createFilesParams := &CreateFilesParams{
+		Files: []FileCreate{
+			{
+				URI: "file:///test_doc.go",
+			},
+		},
+	}
+
+	returnedEdit := WorkspaceEdit{}
+	err = clientLSPContext.Call(
+		MethodWorkspaceWillCreateFiles,
+		createFilesParams,
+		&returnedEdit,
+	)
+	s.Require().NoError(err)
+	s.Require().Equal(workspaceEdit, returnedEdit)
+}

@@ -34,6 +34,13 @@ func WithWorkspaceDidChangeFoldersHandler(handler WorkspaceDidChangeFoldersHandl
 	}
 }
 
+// WithWorkspaceWillCreateFilesHandler sets the handler for the `workspace/willCreateFiles` request.
+func WithWorkspaceWillCreateFilesHandler(handler WorkspaceWillCreateFilesHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetWorkspaceWillCreateFilesHandler(handler)
+	}
+}
+
 // SetWorkspaceSymbolHandler sets the handler for the `workspace/symbol` request.
 func (h *Handler) SetWorkspaceSymbolHandler(handler WorkspaceSymbolHandlerFunc) {
 	h.mu.Lock()
@@ -64,6 +71,14 @@ func (h *Handler) SetWorkspaceDidChangeFoldersHandler(handler WorkspaceDidChange
 	defer h.mu.Unlock()
 	h.workspaceDidChangeFolders = handler
 	h.messageHandlers[MethodWorkspaceDidChangeFolders] = createWorkspaceDidChangeFoldersHandler(h)
+}
+
+// SetWorkspaceWillCreateFilesHandler sets the handler for the `workspace/willCreateFiles` request.
+func (h *Handler) SetWorkspaceWillCreateFilesHandler(handler WorkspaceWillCreateFilesHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.workspaceWillCreateFiles = handler
+	h.messageHandlers[MethodWorkspaceWillCreateFiles] = createWorkspaceWillCreateFilesHandler(h)
 }
 
 func createWorkspaceSymbolHandler(root *Handler) common.Handler {
@@ -131,6 +146,24 @@ func createWorkspaceDidChangeFoldersHandler(root *Handler) common.Handler {
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.workspaceDidChangeFolders(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createWorkspaceWillCreateFilesHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.workspaceWillCreateFiles != nil {
+				var params CreateFilesParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					r, err = root.workspaceWillCreateFiles(ctx, &params)
 				}
 			}
 			return
