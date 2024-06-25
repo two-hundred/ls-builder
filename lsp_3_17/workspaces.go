@@ -515,3 +515,30 @@ type DidChangeConfigurationParams struct {
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_workspaceFolders
 
 const MethodWorkspaceFolders = Method("workspace/workspaceFolders")
+
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_didChangeWorkspaceFolders
+
+const MethodWorkspaceDidChangeFolders = Method("workspace/didChangeWorkspaceFolders")
+
+// WorkspaceDidChangeFoldersHandlerFunc is the function signature for the
+// `workspace/didChangeWorkspaceFolders` method.
+type WorkspaceDidChangeFoldersHandlerFunc func(
+	context *common.LSPContext,
+	params *DidChangeWorkspaceFoldersParams,
+) error
+
+// DidChangeWorkspaceFoldersParams contains the parameters for the `workspace/didChangeWorkspaceFolders`
+// notification.
+type DidChangeWorkspaceFoldersParams struct {
+	// The actual workspace folder change event.
+	Event WorkspaceFoldersChangeEvent `json:"event"`
+}
+
+// WorkspaceFoldersChangeEvent represents a change event for workspace folders.
+type WorkspaceFoldersChangeEvent struct {
+	// The array of added workspace folders.
+	Added []WorkspaceFolder `json:"added"`
+
+	// The array of removed workspace folders.
+	Removed []WorkspaceFolder `json:"removed"`
+}

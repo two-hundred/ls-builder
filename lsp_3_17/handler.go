@@ -90,6 +90,7 @@ type Handler struct {
 	workspaceSymbol                 WorkspaceSymbolHandlerFunc
 	workspaceSymbolResolve          WorkspaceSymbolResolveHandlerFunc
 	workspaceDidChangeConfiguration WorkspaceDidChangeConfigurationHandlerFunc
+	workspaceDidChangeFolders       WorkspaceDidChangeFoldersHandlerFunc
 
 	isInitialized bool
 	// Provides a mapping of method names to the respective handlers

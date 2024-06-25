@@ -177,3 +177,55 @@ func (s *HandlerTestSuite) Test_calls_workspace_did_change_configuration_notific
 		s.Require().Equal(didChangeConfigurationParams, *receivedParams)
 	}
 }
+
+func (s *HandlerTestSuite) Test_calls_workspace_did_change_folders_notification_handler() {
+	logger, err := zap.NewDevelopment()
+	s.Require().NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), server.DefaultTimeout)
+	defer cancel()
+
+	callChan := make(chan *DidChangeWorkspaceFoldersParams, 1)
+	serverHandler := NewHandler(
+		WithWorkspaceDidChangeFoldersHandler(
+			func(ctx *common.LSPContext, params *DidChangeWorkspaceFoldersParams) error {
+				callChan <- params
+				return nil
+			},
+		),
+	)
+	// Emulate the LSP initialisation process.
+	serverHandler.SetInitialized(true)
+	srv := server.NewServer(serverHandler, true, nil, nil)
+
+	container := createTestConnectionsContainer(srv.NewHandler())
+
+	go srv.Serve(container.serverConn, logger)
+
+	clientLSPContext := server.NewLSPContext(ctx, container.clientConn, nil)
+	didChangeFoldersParams := DidChangeWorkspaceFoldersParams{
+		Event: WorkspaceFoldersChangeEvent{
+			Added: []WorkspaceFolder{
+				{
+					URI:  "file:///test_folder_2",
+					Name: "test_folder_2",
+				},
+			},
+			Removed: []WorkspaceFolder{
+				{
+					URI:  "file:///test_folder_1",
+					Name: "test_folder_1",
+				},
+			},
+		},
+	}
+	err = clientLSPContext.Notify(MethodWorkspaceDidChangeFolders, didChangeFoldersParams)
+	s.Require().NoError(err)
+
+	select {
+	case <-ctx.Done():
+		s.Fail("timeout")
+	case receivedParams := <-callChan:
+		s.Require().Equal(didChangeFoldersParams, *receivedParams)
+	}
+}

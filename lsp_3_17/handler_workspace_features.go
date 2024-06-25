@@ -27,6 +27,13 @@ func WithWorkspaceDidChangeConfigurationHandler(handler WorkspaceDidChangeConfig
 	}
 }
 
+// WithWorkspaceDidChangeFoldersHandler sets the handler for the `workspace/didChangeWorkspaceFolders` notification.
+func WithWorkspaceDidChangeFoldersHandler(handler WorkspaceDidChangeFoldersHandlerFunc) HandlerOption {
+	return func(root *Handler) {
+		root.SetWorkspaceDidChangeFoldersHandler(handler)
+	}
+}
+
 // SetWorkspaceSymbolHandler sets the handler for the `workspace/symbol` request.
 func (h *Handler) SetWorkspaceSymbolHandler(handler WorkspaceSymbolHandlerFunc) {
 	h.mu.Lock()
@@ -49,6 +56,14 @@ func (h *Handler) SetWorkspaceDidChangeConfigurationHandler(handler WorkspaceDid
 	defer h.mu.Unlock()
 	h.workspaceDidChangeConfiguration = handler
 	h.messageHandlers[MethodWorkspaceDidChangeConfiguration] = createWorkspaceDidChangeConfigurationHandler(h)
+}
+
+// SetWorkspaceDidChangeFoldersHandler sets the handler for the `workspace/didChangeWorkspaceFolders` notification.
+func (h *Handler) SetWorkspaceDidChangeFoldersHandler(handler WorkspaceDidChangeFoldersHandlerFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.workspaceDidChangeFolders = handler
+	h.messageHandlers[MethodWorkspaceDidChangeFolders] = createWorkspaceDidChangeFoldersHandler(h)
 }
 
 func createWorkspaceSymbolHandler(root *Handler) common.Handler {
@@ -98,6 +113,24 @@ func createWorkspaceDidChangeConfigurationHandler(root *Handler) common.Handler 
 				if err = json.Unmarshal(ctx.Params, &params); err == nil {
 					validParams = true
 					err = root.workspaceDidChangeConfiguration(ctx, &params)
+				}
+			}
+			return
+		},
+	)
+}
+
+func createWorkspaceDidChangeFoldersHandler(root *Handler) common.Handler {
+	return common.HandlerFunc(
+		func(
+			ctx *common.LSPContext,
+		) (r any, validMethod bool, validParams bool, err error) {
+			validMethod = true
+			if root.workspaceDidChangeFolders != nil {
+				var params DidChangeWorkspaceFoldersParams
+				if err = json.Unmarshal(ctx.Params, &params); err == nil {
+					validParams = true
+					err = root.workspaceDidChangeFolders(ctx, &params)
 				}
 			}
 			return
