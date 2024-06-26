@@ -383,7 +383,8 @@ func (s *DispatchTestSuite) Test_server_sends_workspace_configuration_request() 
 			},
 		},
 	}
-	_, err := dispatcher.WorkspaceConfiguration(params)
+	target := map[string]interface{}{}
+	err := dispatcher.WorkspaceConfiguration(params, &target)
 	s.Require().NoError(err)
 
 	// Acquire a lock on the received message list shared between goroutines.

@@ -93,10 +93,9 @@ func (d *Dispatcher) DiagnosticsRefresh() error {
 
 // WorkspaceConfiguration requests the client to fetch the configuration settings
 // for the given scopes and configuration sections within a workspace.
-func (d *Dispatcher) WorkspaceConfiguration(params ConfigurationParams) ([]LSPAny, error) {
-	var result []LSPAny
-	err := d.ctx.Call(MethodWorkspaceConfiguration, params, &result)
-	return result, err
+func (d *Dispatcher) WorkspaceConfiguration(params ConfigurationParams, target any) error {
+	err := d.ctx.Call(MethodWorkspaceConfiguration, params, target)
+	return err
 }
 
 // WorkspaceFolders requests that the client fetches the workspace folders
