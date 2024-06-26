@@ -5,6 +5,8 @@ import (
 	"os"
 )
 
+// Stdio provides a ReadWriteCloser interface to os.Stdin and os.Stdout
+// to be used as the transport layer for a language server over JSON-RPC 2.0.
 type Stdio struct{}
 
 // Read reads from os.Stdin.

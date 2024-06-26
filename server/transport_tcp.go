@@ -6,6 +6,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// RunTCP begins listening for TCP connections on the provided address,
+// creating a LSP over JSON-RPC 2.0 connection on top of each incoming
+// TCP connection with the provided server.
 func RunTCP(ctx context.Context, address string, server *Server, logger *zap.Logger) error {
 	listener, err := newNetworkListener("tcp", address, logger)
 	if err != nil {

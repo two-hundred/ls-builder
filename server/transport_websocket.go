@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// RunWebSocketServer starts a new web socket server on the provided address.
 func RunWebSocketServer(address string, server *Server, logger *zap.Logger, httpServer *http.Server) error {
 	mux := http.NewServeMux()
 	upgrader := websocket.Upgrader{
