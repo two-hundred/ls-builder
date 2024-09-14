@@ -14,7 +14,10 @@ func (s *Server) NewHandler() jsonrpc2.Handler {
 }
 
 func (s *Server) handle(ctx context.Context, connection *jsonrpc2.Conn, request *jsonrpc2.Request) (any, error) {
-	lspContext := NewLSPContext(ctx, connection, request)
+	reqCtx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	lspContext := NewLSPContext(reqCtx, connection, request)
 
 	if request.Method == "exit" {
 		// Give the attached handler a chance to handle the request before closing the connection
