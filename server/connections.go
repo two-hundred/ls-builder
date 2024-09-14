@@ -17,8 +17,6 @@ type connWrapper struct {
 	timeout            time.Duration
 	readTimeout        time.Duration
 	writeTimeout       time.Duration
-	streamTimeout      time.Duration
-	webSocketTimeout   time.Duration
 	wsConn             *websocket.Conn
 	jsonRPCConnOptions []jsonrpc2.ConnOpt
 }
@@ -48,20 +46,6 @@ func WithWriteTimeout(timeout time.Duration) ConnOption {
 	}
 }
 
-// WithStreamTimeout configures the connection with a stream timeout.
-func WithStreamTimeout(timeout time.Duration) ConnOption {
-	return func(c *connWrapper) {
-		c.streamTimeout = timeout
-	}
-}
-
-// WithWebSocketTimeout configures the connection with a WebSocket timeout.
-func WithWebSocketTimeout(timeout time.Duration) ConnOption {
-	return func(c *connWrapper) {
-		c.webSocketTimeout = timeout
-	}
-}
-
 // WithWebSocket configures the connection with a WebSocket connection.
 func WithWebSocket(wsConn *websocket.Conn) ConnOption {
 	return func(c *connWrapper) {
@@ -79,19 +63,16 @@ func WithJSONRPCConnOptions(opts ...jsonrpc2.ConnOpt) ConnOption {
 // NewStreamConnection creates a new JSON-RPC 2.0 connection over a stream (io.ReadWriterCloser).
 func NewStreamConnection(handler jsonrpc2.Handler, stream io.ReadWriteCloser, opts ...ConnOption) *jsonrpc2.Conn {
 	c := &connWrapper{
-		timeout:       DefaultTimeout,
-		readTimeout:   DefaultTimeout,
-		writeTimeout:  DefaultTimeout,
-		streamTimeout: DefaultTimeout,
+		timeout:      DefaultTimeout,
+		readTimeout:  DefaultTimeout,
+		writeTimeout: DefaultTimeout,
 	}
 
 	for _, opt := range opts {
 		opt(c)
 	}
 
-	// Context with deadline for establishing the connection.
-	ctx, cancel := context.WithTimeout(context.Background(), c.streamTimeout)
-	defer cancel()
+	ctx := context.Background()
 
 	return jsonrpc2.NewConn(
 		ctx,
@@ -104,19 +85,16 @@ func NewStreamConnection(handler jsonrpc2.Handler, stream io.ReadWriteCloser, op
 // NewWebSocketConnection creates a new JSON-RPC 2.0 connection over a WebSocket connection.
 func NewWebSocketConnection(handler jsonrpc2.Handler, wsConn *websocket.Conn, opts ...ConnOption) *jsonrpc2.Conn {
 	c := &connWrapper{
-		timeout:       DefaultTimeout,
-		readTimeout:   DefaultTimeout,
-		writeTimeout:  DefaultTimeout,
-		streamTimeout: DefaultTimeout,
+		timeout:      DefaultTimeout,
+		readTimeout:  DefaultTimeout,
+		writeTimeout: DefaultTimeout,
 	}
 
 	for _, opt := range opts {
 		opt(c)
 	}
 
-	// Context with deadline for establishing the connection.
-	ctx, cancel := context.WithTimeout(context.Background(), c.webSocketTimeout)
-	defer cancel()
+	ctx := context.Background()
 
 	return jsonrpc2.NewConn(
 		ctx,
