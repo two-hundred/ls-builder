@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Corrects the go module path in the `go.mod` file to `github.com/newstack-cloud/ls-builder` for all future releases.
+- Replaces all remaining references to `two-hundred` with `newstack-cloud`.
 
 ## [0.2.3] - 2024-09-14
 
