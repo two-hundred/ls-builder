@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/two-hundred/ls-builder/common"
+	"github.com/newstack-cloud/ls-builder/common"
 )
 
 // Handler defines a set of message handlers that allows the server

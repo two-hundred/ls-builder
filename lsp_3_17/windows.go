@@ -1,6 +1,6 @@
 package lsp
 
-import "github.com/two-hundred/ls-builder/common"
+import "github.com/newstack-cloud/ls-builder/common"
 
 // ShowMessageRequestClientCapabilities represents the client capabilities
 // specific to the show message request.

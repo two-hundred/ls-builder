@@ -4,7 +4,7 @@
 package main
 
 import (
-    lsp "github.com/two-hundred/ls-builder/server"
+    lsp "github.com/newstack-cloud/ls-builder/server"
 )
 ```
 

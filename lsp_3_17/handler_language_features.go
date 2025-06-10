@@ -3,7 +3,7 @@ package lsp
 import (
 	"encoding/json"
 
-	"github.com/two-hundred/ls-builder/common"
+	"github.com/newstack-cloud/ls-builder/common"
 )
 
 // WithGotoDeclarationHandler sets the handler for the `textDocument/declaration` request.

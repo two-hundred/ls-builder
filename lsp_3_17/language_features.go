@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/two-hundred/ls-builder/common"
+	"github.com/newstack-cloud/ls-builder/common"
 )
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_declaration

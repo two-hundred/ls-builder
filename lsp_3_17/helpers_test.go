@@ -6,9 +6,9 @@ import (
 	"io"
 	"sync"
 
+	"github.com/newstack-cloud/ls-builder/server"
 	"github.com/sourcegraph/jsonrpc2"
 	"github.com/stretchr/testify/suite"
-	"github.com/two-hundred/ls-builder/server"
 )
 
 type serverCapabilityFixture struct {

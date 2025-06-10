@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/newstack-cloud/ls-builder/server"
 	"github.com/stretchr/testify/suite"
-	"github.com/two-hundred/ls-builder/server"
 )
 
 type DispatchTestSuite struct {

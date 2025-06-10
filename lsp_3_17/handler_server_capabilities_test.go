@@ -3,8 +3,8 @@ package lsp
 import (
 	"testing"
 
+	"github.com/newstack-cloud/ls-builder/common"
 	"github.com/stretchr/testify/suite"
-	"github.com/two-hundred/ls-builder/common"
 )
 
 type HandlerServerCapabilitiesTestSuite struct {

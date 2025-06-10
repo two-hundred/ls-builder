@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/newstack-cloud/ls-builder/common"
 	"github.com/sourcegraph/jsonrpc2"
-	"github.com/two-hundred/ls-builder/common"
 	"go.uber.org/zap"
 )
 

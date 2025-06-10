@@ -3,7 +3,7 @@ package lsp
 import (
 	"encoding/json"
 
-	"github.com/two-hundred/ls-builder/common"
+	"github.com/newstack-cloud/ls-builder/common"
 )
 
 // TextDocumentSyncClientCapabilities represents the client capabilities

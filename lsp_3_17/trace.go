@@ -1,6 +1,6 @@
 package lsp
 
-import "github.com/two-hundred/ls-builder/common"
+import "github.com/newstack-cloud/ls-builder/common"
 
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#setTrace
 

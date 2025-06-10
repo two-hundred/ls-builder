@@ -6,8 +6,8 @@ import (
 	"net"
 	"sync"
 
+	"github.com/newstack-cloud/ls-builder/common"
 	"github.com/sourcegraph/jsonrpc2"
-	"github.com/two-hundred/ls-builder/common"
 )
 
 func getFreePort() (port int, err error) {

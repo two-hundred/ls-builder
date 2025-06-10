@@ -3,7 +3,7 @@ package lsp
 import (
 	"encoding/json"
 
-	"github.com/two-hundred/ls-builder/common"
+	"github.com/newstack-cloud/ls-builder/common"
 )
 
 // NotebookDocumentSyncClientCapabilities represents the client capabilities

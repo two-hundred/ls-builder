@@ -1,6 +1,6 @@
 package lsp
 
-import "github.com/two-hundred/ls-builder/common"
+import "github.com/newstack-cloud/ls-builder/common"
 
 // Dispatcher provides a convenient way to dispatch
 // requests and notification to the client with types

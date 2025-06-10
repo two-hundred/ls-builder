@@ -1,4 +1,4 @@
-module github.com/two-hundred/ls-builder
+module github.com/newstack-cloud/ls-builder
 
 go 1.22.2
 

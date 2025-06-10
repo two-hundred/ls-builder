@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/newstack-cloud/ls-builder/common"
+	"github.com/newstack-cloud/ls-builder/server"
 	"github.com/stretchr/testify/suite"
-	"github.com/two-hundred/ls-builder/common"
-	"github.com/two-hundred/ls-builder/server"
 	"go.uber.org/zap"
 )
 

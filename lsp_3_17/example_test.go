@@ -8,8 +8,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/two-hundred/ls-builder/common"
-	"github.com/two-hundred/ls-builder/server"
+	"github.com/newstack-cloud/ls-builder/common"
+	"github.com/newstack-cloud/ls-builder/server"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

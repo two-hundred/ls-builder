@@ -86,7 +86,7 @@ Title: `v0.2.0`
 3. Prompt Go to update its index of modules with the new release:
 
 ```bash
-GOPROXY=proxy.golang.org go list -m github.com/two-hundred/ls-builder@v0.2.0
+GOPROXY=proxy.golang.org go list -m github.com/newstack-cloud/ls-builder@v0.2.0
 ```
 
 ## Commit scope

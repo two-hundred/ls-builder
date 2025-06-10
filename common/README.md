@@ -4,7 +4,7 @@
 package main
 
 import (
-    "github.com/two-hundred/ls-builder/common"
+    "github.com/newstack-cloud/ls-builder/common"
 )
 ```
 

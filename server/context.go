@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 
+	"github.com/newstack-cloud/ls-builder/common"
 	"github.com/sourcegraph/jsonrpc2"
-	"github.com/two-hundred/ls-builder/common"
 )
 
 // NewLSPContext creates a new LSP context from the given connection and request.
