@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2025-06-11
+
+### Fixed
+
+- Adds fix to ensure that the Go context is attached to the LSP context. [3e6ea20](https://github.com/newstack-cloud/ls-builder/commit/3e6ea20516e9939d3930a3bb851b4aaf67e79129), thanks @vito.
+
 ## [0.2.4] - 2025-06-10
 
 ### Fixed
