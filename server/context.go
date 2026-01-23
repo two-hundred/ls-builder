@@ -10,6 +10,7 @@ import (
 // NewLSPContext creates a new LSP context from the given connection and request.
 func NewLSPContext(ctx context.Context, conn *jsonrpc2.Conn, request *jsonrpc2.Request) *common.LSPContext {
 	lspContext := &common.LSPContext{
+		Context: ctx,
 		Notify: func(method string, params any) error {
 			return conn.Notify(ctx, method, params)
 		},
