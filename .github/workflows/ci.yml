@@ -26,7 +26,7 @@ jobs:
         fetch-depth: 0
     - uses: actions/setup-go@v6
       with:
-        go-version: '1.22.2'
+        go-version: '1.24'
 
     # Install global Go dependencies
     - name: Install Go Global Dependencies
