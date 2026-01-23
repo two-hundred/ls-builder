@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/sourcegraph/jsonrpc2"
 	wsjsonrpc2 "github.com/sourcegraph/jsonrpc2/websocket"
 	"github.com/stretchr/testify/suite"
@@ -29,7 +29,7 @@ func (s *WebSocketTransportTestSuite) Test_websocket_transport() {
 	go RunWebSocketServer(fmt.Sprintf("localhost:%d", port), server, logger, httpServer)
 	defer httpServer.Shutdown(context.TODO())
 
-	conn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://localhost:%d", port), nil)
+	conn, err := waitForWebSocketServer(fmt.Sprintf("ws://localhost:%d", port), 5*time.Second)
 	s.Require().NoError(err)
 
 	ctx := context.Background()

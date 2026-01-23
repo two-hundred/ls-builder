@@ -3,9 +3,12 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"sync"
+	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/newstack-cloud/ls-builder/common"
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -77,4 +80,42 @@ type testCountParams struct {
 type testCountResult struct {
 	Count     int `json:"count"`
 	PrevCount int `json:"prevCount"`
+}
+
+// Retries connecting to a TCP server until it's ready or timeout is reached.
+func waitForTCPServer(address string, timeout time.Duration) (net.Conn, error) {
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+
+	timeoutCh := time.After(timeout)
+	for {
+		select {
+		case <-timeoutCh:
+			return nil, fmt.Errorf("timeout waiting for TCP server at %s", address)
+		case <-ticker.C:
+			conn, err := net.Dial("tcp", address)
+			if err == nil {
+				return conn, nil
+			}
+		}
+	}
+}
+
+// Retries connecting to a WebSocket server until it's ready or timeout is reached.
+func waitForWebSocketServer(address string, timeout time.Duration) (*websocket.Conn, error) {
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+
+	timeoutCh := time.After(timeout)
+	for {
+		select {
+		case <-timeoutCh:
+			return nil, fmt.Errorf("timeout waiting for WebSocket server at %s", address)
+		case <-ticker.C:
+			conn, _, err := websocket.DefaultDialer.Dial(address, nil)
+			if err == nil {
+				return conn, nil
+			}
+		}
+	}
 }

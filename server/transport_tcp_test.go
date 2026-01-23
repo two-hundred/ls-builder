@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"fmt"
-	"net"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -26,7 +26,7 @@ func (s *TCPTransportTestSuite) Test_tcp_transport() {
 	defer cancel()
 	go RunTCP(ctx, fmt.Sprintf("localhost:%d", port), server, logger)
 
-	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+	conn, err := waitForTCPServer(fmt.Sprintf("localhost:%d", port), 5*time.Second)
 	s.Require().NoError(err)
 
 	clientContainer := createClientHandler()
